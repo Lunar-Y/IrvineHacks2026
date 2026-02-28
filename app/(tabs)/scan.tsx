@@ -4,8 +4,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
-import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 import { supabase } from '@/lib/api/supabase';
+import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
@@ -165,23 +165,22 @@ export default function ScanScreen() {
     );
   }
 
-  // If camera permission is denied, explain why we need it and
-  // give the user a way to re-trigger the permission prompt.
-  if (!permission.granted || !locationPermission) {
+  // If camera permission is denied or location is not explicitly granted
+  // (We don't want to block entirely on location, but let's prompt them)
+  if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.permissionText}>LawnLens needs permissions to scan your yard.</Text>
-        <Button onPress={requestPermission} title="Grant Permissions" />
-        <Button onPress={requestPermission} title="Grant Camera Permission" />
-        {locationPermission === false && (
-          <Button
-            onPress={async () => {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              setLocationPermission(status === 'granted');
-            }}
-            title="Grant Location Permission"
-          />
-        )}
+      <View style={[styles.container, styles.centered, { backgroundColor: '#121212' }]}>
+        <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#1e1e1e', borderRadius: 20, width: '85%' }}>
+          <Text style={{ textAlign: 'center', marginBottom: 20, color: '#e5e7eb', fontSize: 16 }}>
+            LawnLens needs camera access to scan your yard for plants.
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }} 
+            onPress={requestPermission}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Grant Camera Permission</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
