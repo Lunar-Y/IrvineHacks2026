@@ -8,7 +8,7 @@ import { supabase } from '@/lib/api/supabase';
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
-  const { currentScan, setScanStatus } = useScanStore();
+  const { currentScan, setScanStatus, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -68,11 +68,25 @@ export default function ScanScreen() {
       if (visionResponse.error) throw visionResponse.error;
       if (profileResponse.error) throw profileResponse.error;
 
-      console.log('Vision Analysis:', visionResponse.data);
-      console.log('Environmental Profile:', profileResponse.data);
+      const profile = profileResponse.data;
+      const visionRaw = visionResponse.data;
+      const vision = typeof visionRaw === 'string' ? (() => {
+        try { return JSON.parse(visionRaw); } catch { return {}; }
+      })() : visionRaw ?? {};
+
+      const recResponse = await supabase.functions.invoke('get-recommendations', {
+        body: {
+          profile,
+          vision,
+          preferences: { purpose: 'general landscaping', maintenance_tolerance: 'medium' },
+        },
+      });
+
+      if (recResponse.error) throw recResponse.error;
+      const recs = Array.isArray(recResponse.data) ? recResponse.data : [];
+      setRecommendations(recs);
 
       setScanStatus('complete');
-      // In a real app, you would navigate to the Recommendations screen here
     } catch (error) {
       console.error('Scan failed:', error);
       setScanStatus('error');
@@ -150,6 +164,11 @@ export default function ScanScreen() {
       {currentScan.status === 'complete' && (
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>Scan Complete! 🌱</Text>
+          {currentScan.recommendations.length > 0 && (
+            <Text style={[styles.overlayText, { fontSize: 14, marginTop: 4 }]}>
+              {currentScan.recommendations.length} plants recommended based on your yard
+            </Text>
+          )}
           <TouchableOpacity 
              style={[styles.scanButton, { marginTop: 20 }]}
              onPress={() => setScanStatus('idle')}
