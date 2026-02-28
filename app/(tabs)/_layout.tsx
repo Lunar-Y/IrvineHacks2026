@@ -22,6 +22,12 @@ export default function TabLayout() {
         headerShown: true,
       }}>
       <Tabs.Screen
+        name="index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="scan"
         options={{
           title: 'Scan',

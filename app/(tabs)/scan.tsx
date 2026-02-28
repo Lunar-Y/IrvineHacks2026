@@ -18,13 +18,6 @@ export default function ScanScreen() {
   const { currentScan, setScanStatus } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
-    })();
-  }, []);
-
   // On web, after the user grants camera permission for the first time,
   // automatically refresh the page ONCE so that the camera stream can be
   // initialized correctly. We persist a flag in localStorage so this does
