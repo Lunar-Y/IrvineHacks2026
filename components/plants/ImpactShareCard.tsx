@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Share } from 'react-native';
-import ViewShot, { captureRef } from 'react-native-view-shot';
-import { useCardsShareImage } from './useCardsShareImage'; // We'll build a hook for the actual share action
+import { View, Text, StyleSheet } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 
 // The offscreen render content that goes into the ShareCard
 const ImpactContent = ({ metrics, totalPlants }: { metrics: any; totalPlants: number }) => (
