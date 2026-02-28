@@ -49,6 +49,15 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* 
+          INTEGRATION NOTE FOR TEAM:
+          When we are ready to merge everyone's features, we need to add the following screens here:
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="recommendations" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="plant/[id]" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="ar/[id]" options={{ presentation: 'modal', headerShown: false }} />
+        */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
