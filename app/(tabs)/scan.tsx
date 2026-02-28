@@ -1,168 +1,147 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Location from 'expo-location';
-import { useScanStore } from '@/lib/store/scanStore';
-import { supabase } from '@/lib/api/supabase';
+import React, { useState } from 'react';
+import { View, StyleSheet, FlatList, Modal, SafeAreaView, Text } from 'react-native';
+import { PlantCard } from '../../components/plants/PlantCard';
+import { PlantDetail } from '../../components/plants/PlantDetail';
+import { usePlantsStore } from '../../store/plantsStore';
 
 export default function ScanScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
-  const { currentScan, setScanStatus } = useScanStore();
-  const cameraRef = useRef<CameraView>(null);
+  const { recommendations } = usePlantsStore();
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
-    })();
-  }, []);
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
 
-  const handleScan = async () => {
-    if (!cameraRef.current) return;
-
-    try {
-      setScanStatus('scanning');
-      
-      // 1. Capture Frame (base64)
-      const photo = await cameraRef.current.takePictureAsync({
-        base64: true,
-        quality: 0.5, // Lower quality for faster upload
-      });
-
-      if (!photo?.base64) throw new Error('Failed to capture frame');
-
-      setScanStatus('analyzing');
-
-      // 2. Get Location
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      // 3. Trigger Supabase Edge Functions in parallel
-      const [visionResponse, profileResponse] = await Promise.all([
-        supabase.functions.invoke('analyze-frame', {
-          body: { image: photo.base64 },
-        }),
-        supabase.functions.invoke('assemble-profile', {
-          body: { lat: latitude, lng: longitude },
-        })
-      ]);
-
-      if (visionResponse.error) throw visionResponse.error;
-      if (profileResponse.error) throw profileResponse.error;
-
-      console.log('Vision Analysis:', visionResponse.data);
-      console.log('Environmental Profile:', profileResponse.data);
-
-      setScanStatus('complete');
-      // In a real app, you would navigate to the Recommendations screen here
-    } catch (error) {
-      console.error('Scan failed:', error);
-      setScanStatus('error');
-    }
+  const handleDragToPlace = () => {
+    console.log(`Transitioning to AR to place ${selectedPlantId}`);
+    setSelectedPlantId(null);
+    // TODO: Navigation to AR mode mapped in Checkpoint 4
   };
 
-  if (!permission) {
-    return <View />;
-  }
-
-  if (!permission.granted || !locationPermission) {
-    return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center', marginBottom: 20 }}>
-          LawnLens needs camera and location permissions to scan your yard.
-        </Text>
-        <Button onPress={requestPermission} title="Grant Camera Permission" />
-        <View style={{ height: 20 }} />
-        <Button 
-          onPress={async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            setLocationPermission(status === 'granted');
-          }} 
-          title="Grant Location Permission" 
-        />
-      </View>
-    );
-  }
+  const selectedPlant = recommendations.find(p => p.id === selectedPlantId);
 
   return (
-    <View style={styles.container}>
-      <CameraView 
-        ref={cameraRef}
-        style={styles.camera} 
-        facing="back"
-      >
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.scanButton} 
-            onPress={handleScan}
-            disabled={currentScan.status === 'scanning' || currentScan.status === 'analyzing'}
-          >
-            <Text style={styles.text}>Scan Lawn</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
-      
-      {(currentScan.status === 'scanning' || currentScan.status === 'analyzing') && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color="white" />
-          <Text style={styles.overlayText}>
-            {currentScan.status === 'scanning' ? 'Capturing Lawn...' : 'Analyzing Environment...'}
-          </Text>
-        </View>
-      )}
+    <SafeAreaView style={styles.container}>
+      {/* 
+        This View acts as a placeholder for the live camera feed 
+        built by Part 2/3.
+      */}
+      <View style={styles.dummyCameraFeed}>
+        <Text style={styles.cameraText}>Live Camera Feed Placeholder</Text>
+      </View>
 
-      {currentScan.status === 'complete' && (
-        <View style={styles.overlay}>
-          <Text style={styles.overlayText}>Scan Complete! 🌱</Text>
-          <TouchableOpacity 
-             style={[styles.scanButton, { marginTop: 20 }]}
-             onPress={() => setScanStatus('idle')}
-          >
-            <Text style={styles.text}>Scan Another Area</Text>
-          </TouchableOpacity>
+      {/* Bottom Sheet overlay for Recommendations */}
+      <View style={styles.bottomSheet}>
+        <View style={styles.header}>
+          <Text style={styles.title}>6 plants for your yard</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}><Text style={styles.badgeText}>Zone 7b</Text></View>
+            <View style={styles.badge}><Text style={styles.badgeText}>Partial Shade</Text></View>
+          </View>
         </View>
-      )}
-    </View>
+
+        <View style={styles.flatListWrapper}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={recommendations}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <PlantCard
+                plant={item}
+                onPress={setSelectedPlantId}
+                onDragStart={() => console.log('Gesture Drag triggered')}
+              />
+            )}
+          />
+        </View>
+      </View>
+
+      {/* Modals placed at root level */}
+      <Modal
+        visible={!!selectedPlantId}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedPlantId(null)}
+      >
+        {selectedPlant && (
+          <View style={styles.modalOverlay}>
+            <PlantDetail
+              plant={selectedPlant}
+              onClose={() => setSelectedPlantId(null)}
+              onDragToPlace={handleDragToPlace}
+            />
+          </View>
+        )}
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#000',
   },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
-  },
-  scanButton: {
-    flex: 1,
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    padding: 15,
-    borderRadius: 10,
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  overlay: {
+  dummyCameraFeed: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
+    backgroundColor: '#1E293B',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  overlayText: {
-    color: 'white',
+  cameraText: {
+    color: '#64748B',
+    fontSize: 18,
+    fontFamily: 'monospace',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  header: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  title: {
     fontSize: 20,
-    marginTop: 10,
+    fontWeight: 'bold',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  badge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  flatListWrapper: {
+    minHeight: 120, // To ensure cards don't collapse if empty
+  },
+  listContent: {
+    paddingHorizontal: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   }
 });
