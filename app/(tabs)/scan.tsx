@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
+import { supabase } from '@/lib/api/supabase';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
