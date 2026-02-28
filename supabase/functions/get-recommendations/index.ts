@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Dedalus } from "npm:dedalus-labs"
+import Dedalus from "npm:dedalus-labs"
 
 serve(async (req) => {
   // Handle CORS
