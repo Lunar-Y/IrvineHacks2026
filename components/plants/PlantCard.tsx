@@ -188,7 +188,6 @@ export default function PlantCard({
 
 const styles = StyleSheet.create({
   cardPressTarget: {
-    flex: 1,
   },
   card: {
     height: 232,
