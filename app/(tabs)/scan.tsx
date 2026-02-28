@@ -2,8 +2,21 @@ import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator, Platform, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
-import { useScanStore } from '@/lib/store/scanStore';
-import { supabase } from '@/lib/api/supabase';
+import { useRouter } from 'expo-router';
+import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
+import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
+
+const STATUS_LABELS: Record<string, string> = {
+  scanning: 'Capturing lawn...',
+  analyzing: 'Analyzing environment...',
+  recommending: 'Finding your plants...',
+};
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantRecommendation[] {
+  return plants.map(({ id, source, rank, ...plant }) => plant);
+}
 
 // New Components
 import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
@@ -15,8 +28,9 @@ export default function ScanScreen() {
   const [isLawnDetected, setIsLawnDetected] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
-  const { currentScan, setScanStatus } = useScanStore();
+  const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
+  const router = useRouter();
 
   // On web, after the user grants camera permission for the first time,
   // automatically refresh the page ONCE so that the camera stream can be
@@ -71,6 +85,28 @@ export default function ScanScreen() {
       setConfidence(aiConfidence);
       setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
       setIsLawnDetected(isValidLawn);
+      
+      // Fallback logic from Jay branch: if valid lawn, generate dummy deck for UI flow testing
+      if (isValidLawn) {
+          setScanStatus('recommending');
+          await delay(450);
+          const dummyDeck = buildDummyDeck(5);
+          const plants = stripDeckMetadata(dummyDeck);
+          setRecommendations(plants);
+
+          // Simulate assembled profile
+          setAssembledProfile({
+            coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
+            hardiness_zone: '9b',
+            estimated_sun_exposure: 'full_sun',
+            estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
+            soil: { soil_texture: 'loamy', drainage: 'well' },
+            source: 'dummy_scan_profile',
+          });
+
+          // Navigate directly to recommendations as intended in the offline flow
+          router.push('/recommendations');
+      }
       setScanStatus('complete');
     } catch (error: any) {
       console.error('Scan failed:', error);
@@ -94,6 +130,16 @@ export default function ScanScreen() {
       <View style={styles.container}>
         <Text style={styles.permissionText}>LawnLens needs permissions to scan your yard.</Text>
         <Button onPress={requestPermission} title="Grant Permissions" />
+        <Button onPress={requestPermission} title="Grant Camera Permission" />
+        {locationPermission === false && (
+          <Button
+            onPress={async () => {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              setLocationPermission(status === 'granted');
+            }}
+            title="Grant Location Permission"
+          />
+        )}
       </View>
     );
   }
@@ -145,7 +191,7 @@ export default function ScanScreen() {
         )}
       </View>
 
-      {(currentScan.status === 'scanning' || currentScan.status === 'analyzing') && (
+      {(currentScan.status === 'scanning' || currentScan.status === 'analyzing' || currentScan.status === 'recommending') && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <ScanningAnimation status={currentScan.status as any} />
         </View>
@@ -175,8 +221,7 @@ export default function ScanScreen() {
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => {
-                    // In a real app, this would navigate to the recommendations screen
-                    console.log("Navigating to Recommendations...");
+                     router.push('/recommendations');
                   }}
                 >
                   <Text style={styles.actionText}>View Recommendations</Text>

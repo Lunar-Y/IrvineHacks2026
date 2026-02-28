@@ -1,6 +1,6 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -14,12 +14,15 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: true,
+        tabBarStyle: pathname === '/recommendations' ? { position: 'absolute', bottom: 0 } : undefined,
       }}>
       <Tabs.Screen
         name="index"
@@ -33,12 +36,32 @@ export default function TabLayout() {
           title: 'Scan',
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
+        listeners={{
+          tabPress: (event) => {
+            if (pathname !== '/recommendations') return;
+            event.preventDefault();
+            router.dismiss();
+            setTimeout(() => {
+              router.replace('/(tabs)/scan');
+            }, 0);
+          },
+        }}
       />
       <Tabs.Screen
         name="plants"
         options={{
           title: 'My Plants',
           tabBarIcon: ({ color }) => <TabBarIcon name="leaf" color={color} />,
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (pathname !== '/recommendations') return;
+            event.preventDefault();
+            router.dismiss();
+            setTimeout(() => {
+              router.replace('/(tabs)/plants');
+            }, 0);
+          },
         }}
       />
       <Tabs.Screen
@@ -47,12 +70,32 @@ export default function TabLayout() {
           title: 'Care',
           tabBarIcon: ({ color }) => <TabBarIcon name="calendar" color={color} />,
         }}
+        listeners={{
+          tabPress: (event) => {
+            if (pathname !== '/recommendations') return;
+            event.preventDefault();
+            router.dismiss();
+            setTimeout(() => {
+              router.replace('/(tabs)/care');
+            }, 0);
+          },
+        }}
       />
       <Tabs.Screen
         name="impact"
         options={{
           title: 'Impact',
           tabBarIcon: ({ color }) => <TabBarIcon name="globe" color={color} />,
+        }}
+        listeners={{
+          tabPress: (event) => {
+            if (pathname !== '/recommendations') return;
+            event.preventDefault();
+            router.dismiss();
+            setTimeout(() => {
+              router.replace('/(tabs)/impact');
+            }, 0);
+          },
         }}
       />
     </Tabs>
