@@ -49,6 +49,12 @@ const CORS_HEADERS = {
 // The structured JSON schema we instruct the LLM to return.
 // Being explicit about the schema dramatically reduces malformed-JSON errors.
 const RESPONSE_SCHEMA = JSON.stringify({
+  is_lawn: "boolean (true if this is a plantable yard/lawn)",
+  confidence: "number (0.0 to 1.0)",
+  soil_analysis: {
+    type: "string (loamy | sandy | clay | rocky)",
+    coverage_percent: "number (0 to 100)"
+  },
   detected_existing_plants: ["string (common name)"],
   detected_yard_features: ["string (e.g. concrete path, slope, fence, irrigation system)"],
   estimated_microclimate: "string (e.g. Hot and dry south-facing, or Cool and damp north-facing)",
