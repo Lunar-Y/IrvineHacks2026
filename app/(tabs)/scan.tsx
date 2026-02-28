@@ -87,29 +87,40 @@ export default function ScanScreen() {
       setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
       setIsLawnDetected(isValidLawn);
 
-      // Fallback logic from Jay branch: if valid lawn, generate dummy deck for UI flow testing
       if (isValidLawn) {
-        setScanStatus('recommending');
-        await delay(450);
-        const dummyDeck = buildDummyDeck(5);
-        const plants = stripDeckMetadata(dummyDeck);
-        setRecommendations(plants);
+          setScanStatus('recommending');
 
-        // Simulate assembled profile
-        setAssembledProfile({
-          coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
-          hardiness_zone: '9b',
-          estimated_sun_exposure: 'full_sun',
-          estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
-          soil: { soil_texture: 'loamy', drainage: 'well' },
-          source: 'dummy_scan_profile',
-        });
+          // Assemble the final profile for the LLM
+          const fullProfile = {
+            ...profileResponse.data,
+            estimated_sun_exposure: visionData.estimated_sun_exposure || 'full_sun',
+            estimated_microclimate: visionData.estimated_microclimate || 'Unknown',
+            detected_existing_plants: visionData.detected_existing_plants || [],
+            detected_yard_features: visionData.detected_yard_features || [],
+            has_pets: false, // Default for prototype
+          };
 
-        // Navigate directly to recommendations as intended in the offline flow
-        router.push('/recommendations');
+          // Default user preferences for the initial scan
+          const preferences = {
+            purpose: "A beautiful, sustainable garden that thrives in this specific spot",
+            avoid_invasive: true
+          };
+
+          // Invoke the Recommendation Brain (Claude + RAG)
+          const { data: recommendations, error: recError } = await supabase.functions.invoke('get-recommendations', {
+            body: { profile: fullProfile, preferences }
+          });
+
+          if (recError) throw new Error(`Recommendations API: ${recError.message}`);
+
+          // Update store with real AI results
+          setRecommendations(recommendations || []);
+          setAssembledProfile(fullProfile);
+
+          // Navigate directly to recommendations as intended in the flow
+          router.push('/recommendations');
       }
-      setScanStatus('complete');
-    } catch (error: any) {
+      setScanStatus('complete');    } catch (error: any) {
       console.error('Scan failed:', error);
       useScanStore.getState().setScanImage(error.message || 'Unknown API Error');
       setScanStatus('error');
