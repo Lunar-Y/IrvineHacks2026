@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+<<<<<<< HEAD
   guideRing: {
     position: 'absolute',
     top: '30%',
@@ -189,6 +190,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(34,197,94,0.9)', // tailwind green-500-ish
     backgroundColor: 'transparent',
   },
+=======
+>>>>>>> 38bc3da6fdf3338716391c0a963a8ded0e9d5f9d
   buttonContainer: {
     position: 'absolute',
     bottom: 32,
@@ -203,7 +206,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
+<<<<<<< HEAD
     minWidth: '50%',
+=======
+    minWidth: '25%',
+>>>>>>> 38bc3da6fdf3338716391c0a963a8ded0e9d5f9d
     maxWidth: 260,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     padding: 15,
