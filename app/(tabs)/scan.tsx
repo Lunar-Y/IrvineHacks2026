@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useScanStore } from '@/lib/store/scanStore';
@@ -17,6 +17,23 @@ export default function ScanScreen() {
       setLocationPermission(status === 'granted');
     })();
   }, []);
+
+  // On web, after the user grants camera permission for the first time,
+  // automatically refresh the page ONCE so that the camera stream can be
+  // initialized correctly. We persist a flag in localStorage so this does
+  // not keep happening on every subsequent load.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (!permission?.granted) return;
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
+
+    const FLAG_KEY = 'lawnlens_camera_refresh_done';
+    const alreadyDone = window.localStorage.getItem(FLAG_KEY);
+    if (alreadyDone) return;
+
+    window.localStorage.setItem(FLAG_KEY, 'true');
+    window.location.reload();
+  }, [permission?.granted]);
 
   const handleScan = async () => {
     if (!cameraRef.current) return;
@@ -63,24 +80,22 @@ export default function ScanScreen() {
   };
 
   if (!permission) {
-    return <View />;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="gray" />
+      </View>
+    );
   }
 
-  if (!permission.granted || !locationPermission) {
+  // If camera permission is denied, explain why we need it and
+  // give the user a way to re-trigger the permission prompt.
+  if (!permission.granted) {
     return (
       <View style={styles.container}>
         <Text style={{ textAlign: 'center', marginBottom: 20 }}>
-          LawnLens needs camera and location permissions to scan your yard.
+          LawnLens needs camera access to scan your yard.
         </Text>
         <Button onPress={requestPermission} title="Grant Camera Permission" />
-        <View style={{ height: 20 }} />
-        <Button 
-          onPress={async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            setLocationPermission(status === 'granted');
-          }} 
-          title="Grant Location Permission" 
-        />
       </View>
     );
   }
@@ -92,14 +107,37 @@ export default function ScanScreen() {
         style={styles.camera} 
         facing="back"
       >
+        {/* Green guide ring to help users aim at their lawn */}
+        <View style={styles.guideRing} />
+
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.scanButton} 
             onPress={handleScan}
-            disabled={currentScan.status === 'scanning' || currentScan.status === 'analyzing'}
+            disabled={
+              currentScan.status === 'scanning' || 
+              currentScan.status === 'analyzing'
+            }
           >
             <Text style={styles.text}>Scan Lawn</Text>
           </TouchableOpacity>
+
+          {locationPermission === false && (
+            <View style={styles.locationPrompt}>
+              <Text style={styles.locationText}>
+                Enable location so we can tailor recommendations to your area.
+              </Text>
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={async () => {
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  setLocationPermission(status === 'granted');
+                }}
+              >
+                <Text style={styles.locationButtonText}>Enable Location</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </CameraView>
       
@@ -132,19 +170,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   camera: {
     flex: 1,
   },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
+  guideRing: {
+    position: 'absolute',
+    top: '30%',
+    left: '15%',
+    right: '15%',
+    aspectRatio: 1,
+    borderRadius: 999,
+    borderWidth: 4,
+    borderColor: 'rgba(34,197,94,0.9)', // tailwind green-500-ish
     backgroundColor: 'transparent',
-    margin: 64,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 0,
+    right: 0,
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
   },
   scanButton: {
-    flex: 1,
-    alignSelf: 'flex-end',
+    alignSelf: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '50%',
+    maxWidth: 260,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     padding: 15,
     borderRadius: 10,
@@ -164,5 +224,25 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     marginTop: 10,
+  },
+  locationPrompt: {
+    marginTop: 16,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  locationText: {
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  locationButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  locationButtonText: {
+    color: 'black',
+    fontWeight: '600',
   }
 });
