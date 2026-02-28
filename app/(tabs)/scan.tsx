@@ -6,7 +6,6 @@ import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
-import { supabase } from '@/lib/api/supabase';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
@@ -87,27 +86,27 @@ export default function ScanScreen() {
       setConfidence(aiConfidence);
       setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
       setIsLawnDetected(isValidLawn);
-      
+
       // Fallback logic from Jay branch: if valid lawn, generate dummy deck for UI flow testing
       if (isValidLawn) {
-          setScanStatus('recommending');
-          await delay(450);
-          const dummyDeck = buildDummyDeck(5);
-          const plants = stripDeckMetadata(dummyDeck);
-          setRecommendations(plants);
+        setScanStatus('recommending');
+        await delay(450);
+        const dummyDeck = buildDummyDeck(5);
+        const plants = stripDeckMetadata(dummyDeck);
+        setRecommendations(plants);
 
-          // Simulate assembled profile
-          setAssembledProfile({
-            coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
-            hardiness_zone: '9b',
-            estimated_sun_exposure: 'full_sun',
-            estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
-            soil: { soil_texture: 'loamy', drainage: 'well' },
-            source: 'dummy_scan_profile',
-          });
+        // Simulate assembled profile
+        setAssembledProfile({
+          coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
+          hardiness_zone: '9b',
+          estimated_sun_exposure: 'full_sun',
+          estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
+          soil: { soil_texture: 'loamy', drainage: 'well' },
+          source: 'dummy_scan_profile',
+        });
 
-          // Navigate directly to recommendations as intended in the offline flow
-          router.push('/recommendations');
+        // Navigate directly to recommendations as intended in the offline flow
+        router.push('/recommendations');
       }
       setScanStatus('complete');
     } catch (error: any) {
@@ -117,7 +116,7 @@ export default function ScanScreen() {
     }
   };
 
-// 1. Handle the loading state first to prevent "null" errors
+  // 1. Handle the loading state first to prevent "null" errors
   if (!permission) {
     return (
       <View style={styles.centered}>
@@ -144,9 +143,9 @@ export default function ScanScreen() {
         <Text style={[styles.successSubtext, { textAlign: 'center', marginBottom: 20 }]}>
           LawnLens needs camera and location access to identify the best plants for your yard.
         </Text>
-        
-        <TouchableOpacity 
-          style={styles.actionButton} 
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={handleRequestPermissions}
         >
           <Text style={styles.actionText}>
@@ -175,8 +174,8 @@ export default function ScanScreen() {
           <Text style={{ textAlign: 'center', marginBottom: 20, color: '#e5e7eb', fontSize: 16 }}>
             LawnLens needs camera access to scan your yard for plants.
           </Text>
-          <TouchableOpacity 
-            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }} 
+          <TouchableOpacity
+            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}
             onPress={requestPermission}
           >
             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Grant Camera Permission</Text>
@@ -263,7 +262,7 @@ export default function ScanScreen() {
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => {
-                     router.push('/recommendations');
+                    router.push('/recommendations');
                   }}
                 >
                   <Text style={styles.actionText}>View Recommendations</Text>
