@@ -116,10 +116,51 @@ export default function ScanScreen() {
     }
   };
 
+// 1. Handle the loading state first to prevent "null" errors
   if (!permission) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="gray" />
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
+
+  // 2. Consolidate logic into a single sequential requester
+  const handleRequestPermissions = async () => {
+    const cameraResult = await requestPermission();
+    if (cameraResult.granted) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+    }
+  };
+
+  // 3. Use optional chaining (?.) to safely check granted status
+  if (permission.granted !== true || locationPermission !== true) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <Text style={styles.errorEmoji}>🌱</Text>
+        <Text style={styles.successTitle}>Permissions Required</Text>
+        <Text style={[styles.successSubtext, { textAlign: 'center', marginBottom: 20 }]}>
+          LawnLens needs camera and location access to identify the best plants for your yard.
+        </Text>
+        
+        <TouchableOpacity 
+          style={styles.actionButton} 
+          onPress={handleRequestPermissions}
+        >
+          <Text style={styles.actionText}>
+            {!permission.granted ? "Enable Camera & Location" : "Enable Location"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ marginTop: 20, flexDirection: 'row' }}>
+          <Text style={{ color: permission.granted ? '#2e7d32' : '#d32f2f' }}>
+            Camera: {permission.granted ? '✓' : '✗'}
+          </Text>
+          <Text style={{ marginLeft: 20, color: locationPermission === true ? '#2e7d32' : '#d32f2f' }}>
+            Location: {locationPermission === true ? '✓' : '✗'}
+          </Text>
+        </View>
       </View>
     );
   }
