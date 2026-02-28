@@ -4,6 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
+import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
 const STATUS_LABELS: Record<string, string> = {
