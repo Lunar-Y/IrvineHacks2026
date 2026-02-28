@@ -25,12 +25,12 @@ The statistics page must follow this exact vertical order:
 ## Canvas & Global Layout Rules
 
 - **Target Device Frame:** iPhone 15 Pro — 393 × 852
-- **Background Color:** `#0E1111`
+- **Background Color:** Reference `ui_guidelines.md` (Background)
 - **Horizontal Padding:** 20px
 - **Section Spacing (Major Blocks):** 32px
 - **Grid Gutter (between square cards):** 16px
 - **Card Corner Radius:** 16px
-- **Card Background Color:** `#161B1B`
+- **Card Background Color:** Reference `ui_guidelines.md` (Card Surface)
 
 *No drop shadows. No borders. No gradients (except share card in future phase).*
 
@@ -85,7 +85,7 @@ This is the only wide statistic component.
 - **Height:** 180px
 - **Border Radius:** 16px
 - **Padding:** 20px
-- **Background:** `#161B1B`
+- **Background:** Reference `ui_guidelines.md` (Card Surface)
 - **Spacing from Overall Score:** 32px
 - **Spacing below:** 32px
 
@@ -112,7 +112,7 @@ This is the only wide statistic component.
   - Font: Inter
   - Size: 13px
   - Weight: Medium
-  - Color: `#8FA3A3`
+  - Color: Reference `ui_guidelines.md` (Muted Text)
 
 *No real graph data in this phase.*
 
@@ -134,7 +134,7 @@ Below CO₂ section.
 - **Height:** 168px
 - **Border Radius:** 16px
 - **Padding:** 16px
-- **Background:** `#161B1B`
+- **Background:** Reference `ui_guidelines.md` (Card Surface)
 - **Spacing between columns:** 16px
 - **Spacing between rows:** 16px
 
@@ -150,7 +150,7 @@ Must follow 3-section vertical structure:
 - **Bottom Section:**
   - Descriptor placeholder
   - 12px Inter Medium
-  - Color: `#8FA3A3`
+  - Color: Reference `ui_guidelines.md` (Muted Text)
 
 *Content must not be vertically centered as a block. Maintain visual hierarchy (top → middle → bottom).*
 
@@ -183,59 +183,7 @@ Must follow 3-section vertical structure:
 
 ---
 
-## Color System (Palette Options)
 
-### Option 1 (Green & Teal Base)
-**Surfaces & Structural**
-- **Background:** `#0E1111`
-- **Card Surface:** `#161B1B`
-- **Elevated Surface:** `#1C2222`
-- **Divider (10%):** `#FFFFFF1A`
-
-**Accents & Data**
-- **Primary Green:** `#1E6F4C`
-- **Primary Hover:** `#238B63`
-- **Soft Green Fill:** `#1E6F4C33`
-- **Light Mint:** `#A8D5BA`
-- **Muted Teal:** `#3E6F6F`
-
-**Typography**
-- **Primary Text:** `#FFFFFF`
-- **Muted Text:** `#8FA3A3`
-- **Subtle Label:** `#6E7F7F`
-
-### Option 2 (Forest & Sage Base)
-**Surfaces & Structural**
-- **Background:** `#0F1412`
-- **Card Surface:** `#18201D`
-
-**Accents & Data**
-- **Forest Green:** `#2F6B4F`
-- **Moss:** `#4C8B6B`
-- **Soft Sage:** `#B7D3C0`
-- **Positive:** `#2F6B4F`
-- **Neutral:** `#C7A23A`
-- **Negative:** `#B24A3A`
-
-**Typography**
-- **Primary:** `#F5F7F6`
-- **Muted:** `#9FAFAA`
-
-### Option 3 (Deep Cyan Base)
-**Surfaces & Structural**
-- **Background:** `#0C1114`
-- **Card Surface:** `#141B1F`
-
-**Accents & Data**
-- **Teal Green:** `#0F766E`
-- **Bright Teal:** `#14B8A6`
-- **Light Aqua:** `#99F6E4`
-- **Deep Cyan:** `#164E63`
-- **Positive:** `#10B981`
-- **Warning:** `#F59E0B`
-- **Negative:** `#EF4444`
-
----
 
 ## Visual Hierarchy Intent
 
