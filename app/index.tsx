@@ -1,4 +1,5 @@
 import { Redirect } from 'expo-router';
+import { View } from 'react-native';
 // import { useProfileStore } from '../lib/store/profileStore';
 // import { useEffect, useState } from 'react';
 // import { View, ActivityIndicator } from 'react-native';
@@ -33,5 +34,10 @@ export default function Index() {
     */
 
     // For now, bypass onboarding and go straight to your tabs:
-    return <Redirect href="/(tabs)" />;
+    return (
+        <>
+            <Redirect href={"/(tabs)/scan" as any} />
+            <View style={{ flex: 1, backgroundColor: '#fff' }} />
+        </>
+    );
 }
