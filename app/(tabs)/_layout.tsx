@@ -33,6 +33,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="scan-ar"
+        options={{
           title: 'Scan',
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
@@ -42,7 +48,7 @@ export default function TabLayout() {
             event.preventDefault();
             router.dismiss();
             setTimeout(() => {
-              router.replace('/(tabs)/scan');
+              router.replace('/(tabs)/scan-ar');
             }, 0);
           },
         }}

@@ -113,6 +113,13 @@ export default function RecommendationsScreen() {
     dragOpacity.value = 1;
   }, [dragOpacity, dragScale, dragTranslateX, dragTranslateY]);
 
+  const navigateToAR = useCallback(
+    (id: number) => {
+      router.push(`/ar/${id}`);
+    },
+    [router]
+  );
+
   const handleMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (activeDragRef.current || isLiftActive) return;
@@ -181,6 +188,12 @@ export default function RecommendationsScreen() {
 
       if (isValidDrop) {
         setDropTarget({ x: payload.x, y: payload.y });
+        const matchingIndex = recommendations.findIndex(
+          (plant) =>
+            plant.common_name === drag.plant.common_name &&
+            plant.scientific_name === drag.plant.scientific_name
+        );
+        const arPayloadId = matchingIndex >= 0 ? matchingIndex : 0;
 
         const targetTranslateX = payload.x - drag.startRect.x - drag.startRect.width / 2;
         const targetTranslateY = payload.y - drag.startRect.y - drag.startRect.height / 2;
@@ -195,7 +208,10 @@ export default function RecommendationsScreen() {
         });
         dragScale.value = withTiming(0.08, { duration: 220, easing: Easing.out(Easing.cubic) });
         dragOpacity.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) }, (finished) => {
-          if (finished) runOnJS(clearDragState)();
+          if (finished) {
+            runOnJS(clearDragState)();
+            runOnJS(navigateToAR)(arPayloadId);
+          }
         });
         return;
       }
@@ -207,7 +223,7 @@ export default function RecommendationsScreen() {
         if (finished) runOnJS(clearDragState)();
       });
     },
-    [clearDragState, dragOpacity, dragScale, dragTranslateX, dragTranslateY, panelTop]
+    [clearDragState, dragOpacity, dragScale, dragTranslateX, dragTranslateY, navigateToAR, panelTop, recommendations]
   );
 
   const handleLiftCancel = useCallback(
