@@ -99,47 +99,65 @@ export default function PlantCard({
     [onLiftCancel, onLiftEnd, onLiftMove, onLiftStart, onLiftStateChange, plant]
   );
 
-  const liftGesture = useMemo(() => {
-    const longPressGesture = Gesture.LongPress()
-      .runOnJS(true)
-      .enabled(enableLiftGesture)
-      .minDuration(50)
-      .maxDistance(48)
-      .onStart((event) => {
-        longPressActive.current = true;
-        liftCallbacks.onStart({ absoluteX: event.absoluteX, absoluteY: event.absoluteY });
-      })
-      .onFinalize(() => {
-        // Long-press only arms lift selection. Pan owns drag/end cleanup.
-        // Do not cancel active lift here, otherwise drag-up dies as soon as movement starts.
-        if (!isLiftActive.current) longPressActive.current = false;
-      });
+  const lastRect = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
-    const dragAfterHoldGesture = Gesture.Pan()
+  const liftGesture = useMemo(() => {
+    const pan = Gesture.Pan()
       .runOnJS(true)
       .enabled(enableLiftGesture)
-      .activeOffsetY([-8, 8])
-      .failOffsetX([-30, 30])
+      .activeOffsetY([-5, 5])
+      .failOffsetX([-15, 15])
+      .shouldCancelWhenOutside(false)
+      .onBegin(() => {
+        containerRef.current?.measureInWindow((x, y, width, height) => {
+          lastRect.current = { x, y, width, height };
+        });
+      })
+      .onStart((event) => {
+        if (!lastRect.current) return;
+        isLiftActive.current = true;
+        onLiftStateChange?.(true);
+        onLiftStart?.({
+          cardId: plant.id,
+          plant,
+          originRect: lastRect.current,
+          touchX: event.absoluteX,
+          touchY: event.absoluteY,
+        });
+      })
       .onUpdate((event) => {
         if (!isLiftActive.current) return;
-        liftCallbacks.onUpdate({ absoluteX: event.absoluteX, absoluteY: event.absoluteY });
+        onLiftMove?.({
+          cardId: plant.id,
+          x: event.absoluteX,
+          y: event.absoluteY,
+        });
       })
       .onEnd((event) => {
         if (!isLiftActive.current) return;
-        liftCallbacks.onEnd({
-          absoluteX: event.absoluteX,
-          absoluteY: event.absoluteY,
+        onLiftEnd?.({
+          cardId: plant.id,
+          x: event.absoluteX,
+          y: event.absoluteY,
           velocityY: event.velocityY,
         });
-        longPressActive.current = false;
       })
       .onFinalize(() => {
-        if (isLiftActive.current) liftCallbacks.onFinalize();
-        longPressActive.current = false;
+        if (isLiftActive.current) {
+          isLiftActive.current = false;
+          onLiftCancel?.({ cardId: plant.id });
+          onLiftStateChange?.(false);
+        }
       });
 
-    return Gesture.Simultaneous(longPressGesture, dragAfterHoldGesture);
-  }, [enableLiftGesture, liftCallbacks]);
+    const tap = Gesture.Tap()
+      .runOnJS(true)
+      .onEnd(() => {
+        if (!isLiftActive.current) onPress();
+      });
+
+    return Gesture.Exclusive(pan, tap);
+  }, [enableLiftGesture, onLiftCancel, onLiftEnd, onLiftMove, onLiftStart, onLiftStateChange, onPress, plant]);
 
   const waterDisplay =
     plant.water_requirement === 'high'
@@ -150,51 +168,34 @@ export default function PlantCard({
 
   return (
     <GestureDetector gesture={liftGesture}>
-      <View ref={containerRef}>
-        <TouchableOpacity activeOpacity={0.95} onPress={onPress} style={styles.cardPressTarget}>
-          <View style={styles.card}>
-            <View style={styles.hero}>
-              {plant.image_url ? (
-                <Image 
-                  source={{ 
-                    uri: plant.image_url,
-                    headers: { 'User-Agent': 'LawnLens/1.0 (https://lawnlens.app; contact@lawnlens.app)' }
-                  }} 
-                  style={styles.heroImage} 
-                  resizeMode="cover" 
-                  onLoadStart={() => console.log(`[ImageDebug] Starting load for: ${plant.common_name} - ${plant.image_url}`)}
-                  onLoad={() => console.log(`[ImageDebug] Successfully loaded: ${plant.common_name}`)}
-                  onError={(error) => {
-                    console.error(`[ImageDebug] Error loading ${plant.common_name}:`, error.error);
-                    console.log(`[ImageDebug] Full error details for ${plant.common_name}:`, JSON.stringify(error, null, 2));
-                  }}
-                />
-              ) : (
-                <View style={[styles.heroImage, styles.heroPlaceholder]}>
-                  <Text style={styles.placeholderEmoji}>🌵</Text>
-                </View>
-              )}
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankBadgeText}>#{plant.rank}</Text>
-              </View>
+      <View ref={containerRef} style={styles.card}>
+        <View style={styles.hero}>
+          {plant.image_url ? (
+            <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]}>
+              <Text style={styles.placeholderEmoji}>🌵</Text>
             </View>
-
-            <View style={styles.body}>
-              <Text style={styles.commonName} numberOfLines={1}>
-                {plant.common_name}
-              </Text>
-              <Text style={styles.scientificName} numberOfLines={1}>
-                {plant.scientific_name}
-              </Text>
-
-              <View style={styles.tagsRow}>
-                <Text style={styles.tag}>{waterDisplay}</Text>
-                <Text style={styles.tag}>Height: {plant.mature_height_meters}m</Text>
-                {plant.is_toxic_to_pets ? <Text style={styles.warningTag}>Not pet-safe</Text> : null}
-              </View>
-            </View>
+          )}
+          <View style={styles.rankBadge}>
+            <Text style={styles.rankBadgeText}>#{plant.rank}</Text>
           </View>
-        </TouchableOpacity>
+        </View>
+
+        <View style={styles.body}>
+          <Text style={styles.commonName} numberOfLines={1}>
+            {plant.common_name}
+          </Text>
+          <Text style={styles.scientificName} numberOfLines={1}>
+            {plant.scientific_name}
+          </Text>
+
+          <View style={styles.tagsRow}>
+            <Text style={styles.tag}>{waterDisplay}</Text>
+            <Text style={styles.tag}>Height: {plant.mature_height_meters}m</Text>
+            {plant.is_toxic_to_pets ? <Text style={styles.warningTag}>Not pet-safe</Text> : null}
+          </View>
+        </View>
       </View>
     </GestureDetector>
   );

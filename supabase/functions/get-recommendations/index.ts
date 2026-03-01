@@ -104,8 +104,11 @@ Structure:
   "water_requirement": "low | medium | high",
   "care_difficulty": "easy | moderate | hard",
   "is_toxic_to_pets": boolean,
-  "is_toxic_to_humans": boolean,
-  "care_tip": "string"
+  "care_tip": "One actionable care tip specific to this user's climate",
+  
+  // AR Classification: The LLM must classify the plant into one of the 4 available 
+  // 3D model categories so the app knows which GLB file to render in the real world.
+  "model_archetype": "tree | large_tree | shrub | flower (choose the best 3D model category for this plant)"
 }`;
 
   const response = await fetch(`${DEDALUS_BASE_URL}/chat/completions`, {
