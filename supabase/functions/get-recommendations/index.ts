@@ -134,10 +134,7 @@ Each object in the array MUST follow this exact structure:
   
   // AR Classification: The LLM must classify the plant into one of the 4 available 
   // 3D model categories so the app knows which GLB file to render in the real world.
-  "model_archetype": "tree | large_tree | shrub | flower (choose the best 3D model category for this plant)",
-  
-  // Real Plant Image Reference
-  "image_url": "Provide a direct https URL to a public domain, high-quality, real photograph of this exact plant species (e.g., from Wikimedia Commons). It MUST be a valid image URL ending in .jpg or .png."
+  "model_archetype": "tree | large_tree | shrub | flower (choose the best 3D model category for this plant)"
 }`;
 
   const response = await fetch(`${DEDALUS_BASE_URL}/chat/completions`, {
