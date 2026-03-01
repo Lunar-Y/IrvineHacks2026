@@ -8,7 +8,8 @@ import { useScanStore } from '@/lib/store/scanStore';
 export default function ARViewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { recommendations } = useScanStore();
+  const { currentScan } = useScanStore();
+  const recommendations = currentScan.recommendations;
   const [permission, requestPermission] = useCameraPermissions();
 
   const parsedId = Number.parseInt(id ?? '0', 10);

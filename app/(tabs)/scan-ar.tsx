@@ -12,7 +12,8 @@ function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantReco
 export default function ScanARScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const router = useRouter();
-  const { recommendations, setRecommendations } = useScanStore();
+  const { currentScan, setRecommendations } = useScanStore();
+  const recommendations = currentScan.recommendations;
 
   useEffect(() => {
     if (recommendations.length > 0) return;

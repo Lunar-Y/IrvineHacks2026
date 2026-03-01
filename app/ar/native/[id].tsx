@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   Dimensions,
   Platform,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
+import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 import PlantCard from '@/components/plants/PlantCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -129,8 +130,13 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
 export default function ARNativeScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { recommendations } = useScanStore();
+  const { currentScan } = useScanStore();
+  const recommendations = currentScan.recommendations;
   const insets = useSafeAreaInsets();
+
+  const deckItems = useMemo(() => {
+    return buildDummyDeck(recommendations.length, recommendations);
+  }, [recommendations]);
 
   if (!viro) {
     return (
@@ -172,8 +178,8 @@ export default function ARNativeScreen() {
       },
       onPanResponderGrant: () => {
         pan.setOffset({
-          x: pan.x._value,
-          y: pan.y._value
+          x: (pan.x as any)._value,
+          y: (pan.y as any)._value
         });
         pan.setValue({ x: 0, y: 0 });
         setIsDragging(true);
@@ -191,7 +197,7 @@ export default function ARNativeScreen() {
         // If dragged high enough up the screen (-150px), count as a DROP in AR
         if (gestureState.dy < -150 && isReady && placeFnRef.current) {
           const activePlant = recommendations[activePlantIndex];
-          placeFnRef.current(activePlantIndex, activePlant?.model_asset);
+          placeFnRef.current(activePlantIndex, (activePlant as any)?.model_asset);
           setPlantCount((c) => c + 1);
         }
 
@@ -210,7 +216,7 @@ export default function ARNativeScreen() {
   const handleTapPlace = () => {
     if (placeFnRef.current && isReady) {
       const activePlant = recommendations[activePlantIndex];
-      placeFnRef.current(activePlantIndex, activePlant?.model_asset);
+      placeFnRef.current(activePlantIndex, (activePlant as any)?.model_asset);
       setPlantCount((c) => c + 1);
     }
   };
@@ -260,7 +266,7 @@ export default function ARNativeScreen() {
           pointerEvents="none"
         >
           <PlantCard
-            plant={recommendations[draggedPlantIdx]}
+            plant={deckItems[draggedPlantIdx]}
             onPress={() => { }}
             enableLiftGesture={false}
           />
@@ -285,7 +291,7 @@ export default function ARNativeScreen() {
           }}
           scrollEventThrottle={16}
         >
-          {recommendations.map((plant, idx) => {
+          {deckItems.map((plant, idx) => {
             const isActive = idx === activePlantIndex;
             return (
               <View key={idx} style={styles.cardWrapper}>
@@ -357,8 +363,8 @@ const styles = StyleSheet.create({
   deckScrollContent: { paddingHorizontal: Dimensions.get('window').width / 2 - 100, gap: 16 },
 
   cardWrapper: { width: 200 },
-  cardScaler: { opacity: 0.6, transform: [{ scale: 0.88 }], transition: 'all 0.2s' },
-  activeCardScaler: { opacity: 1, transform: [{ scale: 1 }] },
+  cardScaler: { opacity: 0.6, transform: [{ scale: 0.88 }] } as any,
+  activeCardScaler: { opacity: 1, transform: [{ scale: 1 }] } as any,
 
   placeButton: {
     position: 'absolute', bottom: -15, alignSelf: 'center',
