@@ -3,14 +3,14 @@ import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Platform }
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
 // New Components
-import LawnDetectionOverlay from '../../components/camera/LawnDetectionOverlay';
-import ScanningAnimation from '../../components/camera/ScanningAnimation';
+import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
+import ScanningAnimation from '@/components/camera/ScanningAnimation';
+import RecommendationsOverlay from '@/components/recommendations/RecommendationsOverlay';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
@@ -25,16 +25,18 @@ function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantReco
 }
 
 export default function ScanScreen() {
-  const router = useRouter();
-
   const [permission, requestPermission] = useCameraPermissions();
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
 
   const [isLawnDetected, setIsLawnDetected] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
+  const [cameraReady, setCameraReady] = useState(false);
+  const [captureInProgress, setCaptureInProgress] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [showRecommendationsOverlay, setShowRecommendationsOverlay] = useState(false);
 
-  const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
+  const { currentScan, setScanStatus, setAssembledProfile, setRecommendations, resetScan } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
   // Try to read existing location permission on mount (no prompt yet)
@@ -64,13 +66,39 @@ export default function ScanScreen() {
     window.location.reload();
   }, [permission?.granted]);
 
+  const canStartScan = cameraReady;
+
   const handleScan = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || captureInProgress) return;
 
     try {
+      if (!canStartScan) {
+        throw new Error('Camera is still initializing. Please wait one second and try again.');
+      }
+
+      setScanError(null);
+      setCaptureInProgress(true);
       setScanStatus('scanning');
 
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
+      const captureFrame = async () => {
+        return cameraRef.current!.takePictureAsync({ base64: true, quality: 0.5 });
+      };
+
+      let photo;
+      try {
+        photo = await captureFrame();
+      } catch (firstError: any) {
+        const firstMessage = String(firstError?.message || '');
+        const shouldRetry =
+          firstMessage.includes('Image could not be captured') ||
+          firstMessage.includes('not ready');
+
+        if (!shouldRetry) throw firstError;
+
+        await delay(300);
+        photo = await captureFrame();
+      }
+
       if (!photo?.base64) throw new Error('Failed to capture frame');
 
       setScanStatus('analyzing');
@@ -85,7 +113,18 @@ export default function ScanScreen() {
       ]);
 
       if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
-      if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
+      if (profileResponse.error) {
+        const profileErrorData =
+          profileResponse.data && typeof profileResponse.data === 'object'
+            ? profileResponse.data as { error?: string; step?: string; details?: string }
+            : null;
+        const structuredDetails = profileErrorData
+          ? [profileErrorData.error, profileErrorData.step, profileErrorData.details].filter(Boolean).join(' | ')
+          : '';
+        throw new Error(
+          `Profile API: ${profileResponse.error.message}${structuredDetails ? ` (${structuredDetails})` : ''}`
+        );
+      }
 
       // Parse Vision Result
       let visionData: any;
@@ -136,15 +175,19 @@ export default function ScanScreen() {
         setRecommendations(recommendations || []);
         setAssembledProfile(fullProfile);
 
-        // Navigate directly to recommendations as intended in the flow
-        router.push('/recommendations');
+        setScanStatus('idle');
+        setShowRecommendationsOverlay(true);
+        return;
       }
       setScanStatus('complete');
     } catch (error: any) {
       console.error('Scan failed:', error);
+      setScanError(error?.message || 'Unable to analyze the environment. Please try again.');
       // If your store has an error message field, store it there; otherwise just show generic
       // (Keeping this minimal to avoid store-method mismatches.)
       setScanStatus('error');
+    } finally {
+      setCaptureInProgress(false);
     }
   };
 
@@ -228,10 +271,22 @@ export default function ScanScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing="back"
+          onCameraReady={() => {
+            setCameraReady(true);
+          }}
+          onMountError={(event) => {
+            const message = event?.message || 'Camera failed to mount.';
+            setScanError(message);
+            setScanStatus('error');
+          }}
+        />
 
         {/* AR-style Viewfinder Brackets */}
-        {(currentScan.status !== 'complete' && currentScan.status !== 'error') && (
+        {(currentScan.status !== 'complete' && currentScan.status !== 'error' && !showRecommendationsOverlay) && (
           <View style={styles.viewfinderContainer} pointerEvents="none">
             <View style={styles.viewfinderBox}>
               <View style={[styles.bracket, styles.bracketTopLeft, { borderColor: isLawnDetected ? '#2F6B4F' : 'rgba(255, 255, 255, 0.5)' }]} />
@@ -250,7 +305,7 @@ export default function ScanScreen() {
           pointerEvents="none"
         />
 
-        {(currentScan.status !== 'complete' && currentScan.status !== 'error') && (
+        {(currentScan.status !== 'complete' && currentScan.status !== 'error' && !showRecommendationsOverlay) && (
           <LawnDetectionOverlay
             isLawnDetected={isLawnDetected}
             confidence={confidence}
@@ -258,16 +313,18 @@ export default function ScanScreen() {
           />
         )}
 
-        {currentScan.status === 'idle' && (
+        {currentScan.status === 'idle' && !showRecommendationsOverlay && (
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.scanButton}
+              style={[styles.scanButton, captureInProgress && { opacity: 0.6 }]}
               onPress={handleScan}
               disabled={
-                currentScan.status !== 'idle'
+                currentScan.status !== 'idle' || captureInProgress || !canStartScan
               }
             >
-              <Text style={styles.text}>Scan Lawn</Text>
+              <Text style={styles.text}>
+                {captureInProgress ? 'Capturing...' : canStartScan ? 'Scan Lawn' : 'Preparing Camera...'}
+              </Text>
             </TouchableOpacity>
 
             {!locationPermission && (
@@ -291,7 +348,7 @@ export default function ScanScreen() {
       </View>
 
       {/* Status Text positioned inside the gradient above the button */}
-      {(currentScan.status !== 'idle' && currentScan.status !== 'error' && currentScan.status !== 'complete') && (
+      {(currentScan.status !== 'idle' && currentScan.status !== 'error' && currentScan.status !== 'complete' && !showRecommendationsOverlay) && (
         <View style={styles.statusTextContainer} pointerEvents="none">
           <ActivityIndicator size="small" color="#F5F7F6" style={{ marginRight: 8 }} />
           <Text style={styles.statusText}>{STATUS_LABELS[currentScan.status as keyof typeof STATUS_LABELS]}</Text>
@@ -304,7 +361,7 @@ export default function ScanScreen() {
             <Text style={[styles.errorEmoji, { marginBottom: 16 }]}>⚠️</Text>
             <Text style={[styles.errorText, { color: '#B24A3A', fontSize: 20, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Scan Failed</Text>
             <Text style={[styles.errorSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
-              {currentScan.imageUri || "Unable to analyze the environment. Please try again."}
+              {scanError || "Unable to analyze the environment. Please try again."}
             </Text>
             <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center' }]}
@@ -316,7 +373,7 @@ export default function ScanScreen() {
         </View>
       )}
 
-      {currentScan.status === 'complete' && (
+      {currentScan.status === 'complete' && !showRecommendationsOverlay && (
         <View style={styles.completeOverlay}>
           <View style={[styles.successCard, { backgroundColor: '#18201D', padding: 32, borderRadius: 16, width: '90%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 12 }]}>
             {isLawnDetected ? (
@@ -329,7 +386,8 @@ export default function ScanScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 12 }]}
                   onPress={() => {
-                    router.push('/recommendations');
+                    setScanStatus('idle');
+                    setShowRecommendationsOverlay(true);
                   }}
                 >
                   <Text style={[styles.actionText, { color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '600' }]}>View Recommendations</Text>
@@ -361,6 +419,20 @@ export default function ScanScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      )}
+
+      {showRecommendationsOverlay && (
+        <RecommendationsOverlay
+          onRequestRescan={() => {
+            resetScan();
+            setShowRecommendationsOverlay(false);
+            setIsLawnDetected(false);
+            setConfidence(0);
+            setSurfaceType('Unknown');
+            setScanError(null);
+            setCaptureInProgress(false);
+          }}
+        />
       )}
     </View>
   );

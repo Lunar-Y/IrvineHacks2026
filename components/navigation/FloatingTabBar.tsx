@@ -41,7 +41,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 let iconName: React.ComponentProps<typeof FontAwesome>['name'] = 'circle';
                 if (route.name === 'scan') iconName = 'camera';
                 if (route.name === 'plants') iconName = 'leaf';
-                if (route.name === 'care') iconName = 'calendar';
+
                 if (route.name === 'impact') iconName = 'globe';
 
                 return (
