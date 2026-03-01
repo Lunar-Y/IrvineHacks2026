@@ -110,8 +110,6 @@ export default function PlantCard({
         liftCallbacks.onStart({ absoluteX: event.absoluteX, absoluteY: event.absoluteY });
       })
       .onFinalize(() => {
-        // Long-press only arms lift selection. Pan owns drag/end cleanup.
-        // Do not cancel active lift here, otherwise drag-up dies as soon as movement starts.
         if (!isLiftActive.current) longPressActive.current = false;
       });
 
@@ -148,6 +146,8 @@ export default function PlantCard({
         ? 'Water: Medium'
         : 'Water: Low';
 
+  const difficultyDisplay = `Difficulty: ${plant.care_difficulty.charAt(0).toUpperCase() + plant.care_difficulty.slice(1)}`;
+
   return (
     <GestureDetector gesture={liftGesture}>
       <View ref={containerRef}>
@@ -161,12 +161,11 @@ export default function PlantCard({
                     headers: { 'User-Agent': 'LawnLens/1.0 (https://lawnlens.app; contact@lawnlens.app)' }
                   }} 
                   style={styles.heroImage} 
-                  resizeMode="cover" 
+                  contentFit="cover" 
                   onLoadStart={() => console.log(`[ImageDebug] Starting load for: ${plant.common_name} - ${plant.image_url}`)}
                   onLoad={() => console.log(`[ImageDebug] Successfully loaded: ${plant.common_name}`)}
                   onError={(error) => {
                     console.error(`[ImageDebug] Error loading ${plant.common_name}:`, error.error);
-                    console.log(`[ImageDebug] Full error details for ${plant.common_name}:`, JSON.stringify(error, null, 2));
                   }}
                 />
               ) : (
@@ -188,9 +187,15 @@ export default function PlantCard({
               </Text>
 
               <View style={styles.tagsRow}>
+                <Text style={styles.tag}>{difficultyDisplay}</Text>
                 <Text style={styles.tag}>{waterDisplay}</Text>
                 <Text style={styles.tag}>Height: {plant.mature_height_meters}m</Text>
-                {plant.is_toxic_to_pets ? <Text style={styles.warningTag}>Not pet-safe</Text> : null}
+                <Text style={plant.is_toxic_to_pets ? styles.warningTag : styles.successTag}>
+                  {plant.is_toxic_to_pets ? 'Not Pet Safe' : 'Pet Safe'}
+                </Text>
+                <Text style={plant.is_toxic_to_humans ? styles.warningTag : styles.successTag}>
+                  {plant.is_toxic_to_humans ? 'Not Child Safe' : 'Child Safe'}
+                </Text>
               </View>
             </View>
           </View>
@@ -204,7 +209,7 @@ const styles = StyleSheet.create({
   cardPressTarget: {
   },
   card: {
-    height: 232,
+    height: 340, // Standardized to largest required height
     backgroundColor: '#ffffff',
     borderRadius: 18,
     overflow: 'hidden',
@@ -217,7 +222,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   hero: {
-    height: 118,
+    height: 140, // Increased from 118 for better visual impact
     backgroundColor: '#dcfce7',
   },
   heroImage: {
@@ -264,19 +269,29 @@ const styles = StyleSheet.create({
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginTop: 10,
   },
   tag: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#374151',
     backgroundColor: '#f3f4f6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    fontWeight: '500',
+  },
+  successTag: {
+    fontSize: 11,
+    color: '#166534',
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    fontWeight: '600',
   },
   warningTag: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#991b1b',
     backgroundColor: '#fee2e2',
     paddingHorizontal: 8,

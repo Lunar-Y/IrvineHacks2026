@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
@@ -351,11 +352,31 @@ export default function ScanScreen() {
                 setConfidence(0);
                 setSurfaceType('Unknown');
               }}
-              style={[{ borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center' },
-              isLawnDetected ? { backgroundColor: 'transparent' } : { backgroundColor: '#18201D', borderWidth: 2, borderColor: '#9FAFAA' }]}
+              style={[
+                { 
+                  borderRadius: 999, 
+                  paddingVertical: 14, 
+                  paddingHorizontal: 24, 
+                  width: '100%', 
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                },
+                { 
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                  borderWidth: 1.5, 
+                  borderColor: 'rgba(159, 175, 170, 0.4)' 
+                }
+              ]}
             >
-              <Text style={[{ fontSize: 16, fontFamily: 'Inter', fontWeight: '600' },
-              isLawnDetected ? { color: '#9FAFAA' } : { color: '#F5F7F6' }]}>
+              <Feather name="refresh-cw" size={16} color="#F5F7F6" />
+              <Text style={{ 
+                fontSize: 16, 
+                fontFamily: 'Inter', 
+                fontWeight: '600', 
+                color: '#F5F7F6' 
+              }}>
                 Scan Another Area
               </Text>
             </TouchableOpacity>
