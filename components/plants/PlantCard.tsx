@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { RecommendationDeckItem } from '@/lib/recommendations/deckBuilder';
 
@@ -154,7 +155,20 @@ export default function PlantCard({
           <View style={styles.card}>
             <View style={styles.hero}>
               {plant.image_url ? (
-                <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
+                <Image 
+                  source={{ 
+                    uri: plant.image_url,
+                    headers: { 'User-Agent': 'LawnLens/1.0 (https://lawnlens.app; contact@lawnlens.app)' }
+                  }} 
+                  style={styles.heroImage} 
+                  resizeMode="cover" 
+                  onLoadStart={() => console.log(`[ImageDebug] Starting load for: ${plant.common_name} - ${plant.image_url}`)}
+                  onLoad={() => console.log(`[ImageDebug] Successfully loaded: ${plant.common_name}`)}
+                  onError={(error) => {
+                    console.error(`[ImageDebug] Error loading ${plant.common_name}:`, error.error);
+                    console.log(`[ImageDebug] Full error details for ${plant.common_name}:`, JSON.stringify(error, null, 2));
+                  }}
+                />
               ) : (
                 <View style={[styles.heroImage, styles.heroPlaceholder]}>
                   <Text style={styles.placeholderEmoji}>🌵</Text>
