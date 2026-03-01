@@ -37,8 +37,9 @@ const CARD_WIDTH_RATIO = 0.66;
 const CARD_SEPARATOR = 14;
 const PANEL_DRAG_HANDLE_HEIGHT = 72;
 
-interface Props {
+interface RecommendationsOverlayProps {
   onRequestRescan?: () => void;
+  onPlantPress?: (plantIndex: number) => void;
 }
 
 function normalizePlantKey(value: string | undefined): string {
@@ -49,7 +50,7 @@ function getPlantMatchKey(plant: { common_name?: string; scientific_name?: strin
   return `${normalizePlantKey(plant.common_name)}::${normalizePlantKey(plant.scientific_name)}`;
 }
 
-export default function ({ onRequestRescan }: Props) {
+export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }: RecommendationsOverlayProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currentScan, resetScan } = useScanStore();
@@ -306,7 +307,12 @@ export default function ({ onRequestRescan }: Props) {
                       if (recommendations.length === 0) return;
                       const matchingIndex = recommendationIndexByKey.get(getPlantMatchKey(item));
                       if (matchingIndex === undefined) return;
-                      router.push(`/plant/${matchingIndex}`);
+
+                      if (onPlantPress) {
+                        onPlantPress(matchingIndex);
+                      } else {
+                        router.push(`/plant/${matchingIndex}`);
+                      }
                     }}
                   />
                 </View>
