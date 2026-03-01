@@ -18,10 +18,10 @@ export default function PlantDetailScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { currentScan } = useScanStore();
-    const recommendations = currentScan.recommendations;
-
-    const index = parseInt(id ?? '0', 10);
-    const plant = recommendations[index];
+    const recommendations = Array.isArray(currentScan.recommendations) ? currentScan.recommendations : [];
+    const parsedIndex = Number.parseInt(id ?? '', 10);
+    const isValidIndex = Number.isInteger(parsedIndex) && parsedIndex >= 0 && parsedIndex < recommendations.length;
+    const plant = isValidIndex ? recommendations[parsedIndex] : undefined;
 
     if (!plant) {
         return (

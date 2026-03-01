@@ -4,7 +4,6 @@ import { Tabs, usePathname, useRouter } from 'expo-router';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { FloatingTabBar } from '@/components/navigation/FloatingTabBar';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -12,8 +11,6 @@ function TabBarIcon(props: {
 }) {
   return <FontAwesome size={26} style={{ marginBottom: -3 }} {...props} />;
 }
-
-import { View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
