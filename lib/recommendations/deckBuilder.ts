@@ -1,3 +1,11 @@
+/**
+ * ⚠️  FILLER / SCAFFOLD FILE — REPLACE FOR FINAL PRODUCT
+ *
+ * This deck builder currently uses hardcoded mock data to populate the
+ * recommendations carousel. In the final product, replace `buildDummyDeck()`
+ * with an async `buildLiveDeck()` that fetches from the get-recommendations
+ * Edge Function and falls back to mockRecommendations only on network failure.
+ */
 import { MOCK_RECOMMENDATIONS } from '@/lib/mock/mockRecommendations';
 import { PlantRecommendation } from '@/lib/store/scanStore';
 

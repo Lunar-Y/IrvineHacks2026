@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -25,6 +26,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    ...FontAwesome.font,
   });
   const [webReady, setWebReady] = useState(false);
 
@@ -67,6 +69,10 @@ function RootLayoutNav() {
           <Stack.Screen
             name="recommendations"
             options={{ presentation: 'transparentModal', headerShown: false, animation: 'slide_from_bottom' }}
+          />
+          <Stack.Screen
+            name="ar-demo"
+            options={{ headerShown: false }}
           />
           {/* Part 4: Plant detail modal */}
           <Stack.Screen
