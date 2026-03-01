@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
 import { ViroARSceneNavigator, ViroARScene, ViroText, Viro3DObject, ViroAmbientLight, ViroSpotLight, ViroNode, ViroQuad } from '@viro-community/react-viro';
 
-const PlantScene = (props: any) => {
+const PlantScene = () => {
   const [plants, setPlants] = useState<any[]>([]);
 
   const onSceneClick = (anchor: any) => {
@@ -27,7 +27,7 @@ const PlantScene = (props: any) => {
         color="#ffffff"
         castsShadow={true}
       />
-      
+
       {plants.map((plant, index) => (
         <ViroNode key={index} position={plant.position}>
           <Viro3DObject
@@ -39,7 +39,6 @@ const PlantScene = (props: any) => {
             rotation={[-90, 0, 0]}
             scale={[1, 1, 1]}
             opacity={0.3}
-            color="#000000"
           />
         </ViroNode>
       ))}

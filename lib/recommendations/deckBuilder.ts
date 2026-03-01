@@ -1,28 +1,81 @@
-import type { PlantRecommendation } from '@/lib/store/scanStore';
+import { MOCK_RECOMMENDATIONS } from '@/lib/mock/mockRecommendations';
+import { PlantRecommendation } from '@/lib/store/scanStore';
+
+export type DeckSource = 'dummy';
 
 export interface RecommendationDeckItem extends PlantRecommendation {
   id: string;
-  source: 'dummy' | 'api';
+  source: DeckSource;
   rank: number;
 }
 
-const DUMMY_PLANTS: PlantRecommendation[] = [
-  { common_name: 'Lavender', scientific_name: 'Lavandula angustifolia', why_it_fits: 'Drought-tolerant, full sun.', model_archetype: 'flowering_shrub', fit_score: 88 },
-  { common_name: 'Rosemary', scientific_name: 'Rosmarinus officinalis', why_it_fits: 'Low water, hardy in zone 9.', model_archetype: 'flowering_shrub', fit_score: 85 },
-  { common_name: 'California Poppy', scientific_name: 'Eschscholzia californica', why_it_fits: 'Native, easy care.', model_archetype: 'perennial_flower', fit_score: 90 },
-  { common_name: 'Creeping Thyme', scientific_name: 'Thymus serpyllum', why_it_fits: 'Groundcover, low maintenance.', model_archetype: 'groundcover', fit_score: 82 },
-  { common_name: 'Olive', scientific_name: 'Olea europaea', why_it_fits: 'Small tree, drought tolerant.', model_archetype: 'small_tree', fit_score: 78 },
-];
+function normalizeIdentity(value: string | undefined): string {
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
+function getIdentity(plant: PlantRecommendation, index: number): string {
+  const scientific = normalizeIdentity(plant.scientific_name);
+  if (scientific.length > 0) return scientific;
+
+  const common = normalizeIdentity(plant.common_name);
+  if (common.length > 0) return common;
+
+  return `plant-${index + 1}`;
+}
+
+function dedupeRecommendations(plants: PlantRecommendation[]): PlantRecommendation[] {
+  const seen = new Set<string>();
+  const deduped: PlantRecommendation[] = [];
+
+  plants.forEach((plant, index) => {
+    const key = getIdentity(plant, index);
+    if (seen.has(key)) return;
+    seen.add(key);
+    deduped.push(plant);
+  });
+
+  return deduped;
+}
+
+/**
+ * Builds a recommendation deck with deterministic ordering, IDs, and a minimum card count.
+ * Uses seedPlants (or existing recommendations) when provided, otherwise MOCK_RECOMMENDATIONS.
+ */
 export function buildDummyDeck(
-  count: number = 5,
-  existing: PlantRecommendation[] = []
+  minCount: number = 5,
+  seedPlants: PlantRecommendation[] = MOCK_RECOMMENDATIONS
 ): RecommendationDeckItem[] {
-  const base = existing.length >= count ? existing : DUMMY_PLANTS;
-  return base.slice(0, count).map((plant, i) => ({
+  const safeMinCount = Math.max(1, Math.floor(minCount));
+  const sourcePlants = seedPlants.length > 0 ? seedPlants : MOCK_RECOMMENDATIONS;
+  const dedupedPlants = dedupeRecommendations(sourcePlants);
+
+  if (dedupedPlants.length === 0) return [];
+
+  const initialDeck = dedupedPlants.map((plant, index) => ({
     ...plant,
-    id: `dummy-${i}-${Date.now()}`,
+    id: `dummy-${getIdentity(plant, index)}-${index + 1}`,
     source: 'dummy' as const,
-    rank: i + 1,
+    rank: index + 1,
   }));
+
+  const deck = [...initialDeck];
+  let loopIndex = 0;
+
+  while (deck.length < safeMinCount) {
+    const baseIndex = loopIndex % dedupedPlants.length;
+    const plant = dedupedPlants[baseIndex];
+    deck.push({
+      ...plant,
+      id: `dummy-${getIdentity(plant, baseIndex)}-loop-${deck.length + 1}`,
+      source: 'dummy',
+      rank: deck.length + 1,
+    });
+    loopIndex += 1;
+  }
+
+  return deck;
 }
