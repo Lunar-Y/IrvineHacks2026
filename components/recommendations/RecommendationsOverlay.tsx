@@ -15,19 +15,12 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   clamp,
-  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import PlantCard, {
-  LiftCancelPayload,
-  LiftEndPayload,
-  LiftMovePayload,
-  LiftStartPayload,
-} from '@/components/plants/PlantCard';
+import PlantCard from '@/components/plants/PlantCard';
 import { buildDummyDeck, RecommendationDeckItem } from '@/lib/recommendations/deckBuilder';
 import {
   PANEL_ANIMATION_DURATION_MS,
@@ -44,38 +37,40 @@ const CARD_WIDTH_RATIO = 0.66;
 const CARD_SEPARATOR = 14;
 const PANEL_DRAG_HANDLE_HEIGHT = 72;
 
-interface ActiveDragState {
-  cardId: string;
-  plant: RecommendationDeckItem;
-  startRect: { x: number; y: number; width: number; height: number };
-  touchOffsetX: number;
-  touchOffsetY: number;
-  isDragging: boolean;
-}
-
-interface RecommendationsOverlayProps {
+interface Props {
   onRequestRescan?: () => void;
 }
 
-export default function RecommendationsOverlay({ onRequestRescan }: RecommendationsOverlayProps) {
+function normalizePlantKey(value: string | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+function getPlantMatchKey(plant: { common_name?: string; scientific_name?: string }): string {
+  return `${normalizePlantKey(plant.common_name)}::${normalizePlantKey(plant.scientific_name)}`;
+}
+
+export default function ({ onRequestRescan }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { recommendations, currentScan, resetScan } = useScanStore();
+  const { currentScan, resetScan } = useScanStore();
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [activeDrag, setActiveDrag] = useState<ActiveDragState | null>(null);
-  const [isLiftActive, setIsLiftActive] = useState(false);
-  const [dropTarget, setDropTarget] = useState<{ x: number; y: number } | null>(null);
   const [panelState, setPanelState] = useState<PanelState>('expanded');
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isReturningToScan, setIsReturningToScan] = useState(false);
   const flatListRef = useRef<FlatList<RecommendationDeckItem>>(null);
-  const activeDragRef = useRef<ActiveDragState | null>(null);
-
-  const dragTranslateX = useSharedValue(0);
-  const dragTranslateY = useSharedValue(0);
-  const dragScale = useSharedValue(1);
-  const dragOpacity = useSharedValue(1);
+  const recommendations = useMemo(
+    () => (Array.isArray(currentScan.recommendations) ? currentScan.recommendations : []),
+    [currentScan.recommendations]
+  );
+  const recommendationIndexByKey = useMemo(() => {
+    const indexByKey = new Map<string, number>();
+    recommendations.forEach((plant, index) => {
+      const key = getPlantMatchKey(plant);
+      if (!indexByKey.has(key)) indexByKey.set(key, index);
+    });
+    return indexByKey;
+  }, [recommendations]);
 
   useEffect(() => {
     /**
@@ -98,7 +93,7 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
   const zoneLabel = useMemo(() => {
     const profile = currentScan.assembledProfile;
     if (!profile || typeof profile !== 'object') return 'Zone 9b';
-    const rawZone = (profile as Record<string, unknown>).hardiness_zone;
+    const rawZone = profile.hardiness_zone;
     if (typeof rawZone === 'number' || typeof rawZone === 'string') return `Zone ${rawZone}`;
     return 'Zone 9b';
   }, [currentScan.assembledProfile]);
@@ -154,9 +149,9 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
   );
 
   const minimizePanel = useCallback(() => {
-    if (panelState === 'minimized' || isPanelAnimating || isLiftActive) return;
+    if (panelState === 'minimized' || isPanelAnimating) return;
     animatePanelTo('minimized');
-  }, [animatePanelTo, isLiftActive, isPanelAnimating, panelState]);
+  }, [animatePanelTo, isPanelAnimating, panelState]);
 
   const expandPanel = useCallback(() => {
     if (panelState === 'expanded' || isPanelAnimating) return;
@@ -206,32 +201,13 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
     [minimizedTranslateY, panelDragStart, panelTranslateY, setIsPanelAnimatingOnJS, setPanelStateOnJS]
   );
 
-  const dragOverlayStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: dragTranslateX.value }, { translateY: dragTranslateY.value }, { scale: dragScale.value }],
-    opacity: dragOpacity.value,
-    zIndex: 9999,
-    elevation: 9999,
-  }));
-
-  const clearDragState = useCallback(() => {
-    activeDragRef.current = null;
-    setActiveDrag(null);
-    setIsLiftActive(false);
-    setDropTarget(null);
-    dragTranslateX.value = 0;
-    dragTranslateY.value = 0;
-    dragScale.value = 1;
-    dragOpacity.value = 1;
-  }, [dragOpacity, dragScale, dragTranslateX, dragTranslateY]);
-
   const handleMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (activeDragRef.current || isLiftActive) return;
       const index = Math.round(event.nativeEvent.contentOffset.x / snapInterval);
       const boundedIndex = Math.max(0, Math.min(index, Math.max(deckItems.length - 1, 0)));
       setCurrentIndex(boundedIndex);
     },
-    [deckItems.length, isLiftActive, snapInterval]
+    [deckItems.length, snapInterval]
   );
 
   const handleScrollToIndexFailed = useCallback(
@@ -242,90 +218,6 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
       });
     },
     [snapInterval]
-  );
-
-  const handleLiftStart = useCallback(
-    (payload: LiftStartPayload) => {
-      const nextDrag: ActiveDragState = {
-        cardId: payload.cardId,
-        plant: payload.plant,
-        startRect: payload.originRect,
-        touchOffsetX: payload.touchX - payload.originRect.x,
-        touchOffsetY: payload.touchY - payload.originRect.y,
-        isDragging: true,
-      };
-
-      activeDragRef.current = nextDrag;
-      setActiveDrag(nextDrag);
-      setDropTarget(null);
-      dragTranslateX.value = 0;
-      dragTranslateY.value = 0;
-      dragScale.value = 1;
-      dragOpacity.value = 1;
-    },
-    [dragOpacity, dragScale, dragTranslateX, dragTranslateY]
-  );
-
-  const handleLiftMove = useCallback(
-    (payload: LiftMovePayload) => {
-      const drag = activeDragRef.current;
-      if (!drag || drag.cardId !== payload.cardId) return;
-
-      const nextX = payload.x - drag.startRect.x - drag.touchOffsetX;
-      const nextY = payload.y - drag.startRect.y - drag.touchOffsetY;
-      dragTranslateX.value = nextX;
-      dragTranslateY.value = nextY;
-
-      const liftedAmount = clamp(-nextY, 0, 260);
-      dragScale.value = interpolate(liftedAmount, [0, 260], [1, 1.03]);
-      dragOpacity.value = interpolate(liftedAmount, [0, 260], [1, 0.95]);
-    },
-    [dragOpacity, dragScale, dragTranslateX, dragTranslateY]
-  );
-
-  const handleLiftEnd = useCallback(
-    (payload: LiftEndPayload) => {
-      const drag = activeDragRef.current;
-      if (!drag || drag.cardId !== payload.cardId) return;
-
-      const isValidDrop = payload.y < panelTop;
-
-      if (isValidDrop) {
-        setDropTarget({ x: payload.x, y: payload.y });
-
-        const targetTranslateX = payload.x - drag.startRect.x - drag.startRect.width / 2;
-        const targetTranslateY = payload.y - drag.startRect.y - drag.startRect.height / 2;
-
-        dragTranslateX.value = withTiming(targetTranslateX, {
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-        });
-        dragTranslateY.value = withTiming(targetTranslateY, {
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-        });
-        dragScale.value = withTiming(0.08, { duration: 220, easing: Easing.out(Easing.cubic) });
-        dragOpacity.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) }, (finished) => {
-          if (finished) runOnJS(clearDragState)();
-        });
-        return;
-      }
-
-      dragTranslateX.value = withSpring(0, { damping: 18, stiffness: 220 });
-      dragTranslateY.value = withSpring(0, { damping: 18, stiffness: 220 });
-      dragScale.value = withSpring(1, { damping: 18, stiffness: 220 });
-      dragOpacity.value = withSpring(1, { damping: 18, stiffness: 220 }, (finished) => {
-        if (finished) runOnJS(clearDragState)();
-      });
-    },
-    [clearDragState, dragOpacity, dragScale, dragTranslateX, dragTranslateY, panelTop]
-  );
-
-  const handleLiftCancel = useCallback(
-    (_payload: LiftCancelPayload) => {
-      clearDragState();
-    },
-    [clearDragState]
   );
 
   return (
@@ -381,7 +273,7 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
         </GestureDetector>
 
         <View pointerEvents={panelState === 'minimized' ? 'none' : 'auto'}>
-          <Text style={styles.hintText}>Swipe left/right • Drag up to place • Tap above to minimize</Text>
+          <Text style={styles.hintText}>Swipe left/right • Tap a card for details • Tap above to minimize</Text>
         </View>
 
         <View pointerEvents={panelState === 'minimized' ? 'none' : 'auto'}>
@@ -390,7 +282,7 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
             data={deckItems}
             keyExtractor={(item) => item.id}
             horizontal
-            scrollEnabled={!isLiftActive && !activeDrag}
+            scrollEnabled
             showsHorizontalScrollIndicator={false}
             snapToAlignment="start"
             decelerationRate="fast"
@@ -405,25 +297,16 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
             contentContainerStyle={{ paddingHorizontal: horizontalInset, paddingBottom: 10 }}
             ItemSeparatorComponent={() => <View style={{ width: CARD_SEPARATOR }} />}
             renderItem={({ item, index }) => {
-              const isActiveCard = index === currentIndex;
-              const isGhosted = activeDrag?.cardId === item.id;
               return (
-                <View style={{ width: cardWidth, opacity: isGhosted ? 0.25 : 1 }}>
+                <View style={{ width: cardWidth }}>
                   <PlantCard
                     plant={item}
-                    enableLiftGesture={isActiveCard}
-                    onLiftStart={handleLiftStart}
-                    onLiftMove={handleLiftMove}
-                    onLiftEnd={handleLiftEnd}
-                    onLiftCancel={handleLiftCancel}
-                    onLiftStateChange={setIsLiftActive}
+                    enableLiftGesture={false}
                     onPress={() => {
-                      const matchingIndex = recommendations.findIndex(
-                        (plant) =>
-                          plant.common_name === item.common_name &&
-                          plant.scientific_name === item.scientific_name
-                      );
-                      router.push(`/plant/${matchingIndex >= 0 ? matchingIndex : 0}`);
+                      if (recommendations.length === 0) return;
+                      const matchingIndex = recommendationIndexByKey.get(getPlantMatchKey(item));
+                      if (matchingIndex === undefined) return;
+                      router.push(`/plant/${matchingIndex}`);
                     }}
                   />
                 </View>
@@ -436,27 +319,6 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
           <Text style={styles.countText}>Showing {Math.max(deckItems.length, 5)} recommendations</Text>
         </View>
       </Animated.View>
-
-      {activeDrag ? (
-        <View pointerEvents="none" style={styles.dragOverlay}>
-          <Animated.View
-            style={[
-              styles.dragCardContainer,
-              {
-                left: activeDrag.startRect.x,
-                top: activeDrag.startRect.y,
-                width: activeDrag.startRect.width,
-              },
-              dragOverlayStyle,
-            ]}>
-            <PlantCard plant={activeDrag.plant} enableLiftGesture={false} onPress={() => {}} />
-          </Animated.View>
-
-          {dropTarget ? (
-            <View style={[styles.dropMarker, { left: dropTarget.x - 3, top: dropTarget.y - 3 }]} />
-          ) : null}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -573,20 +435,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     paddingBottom: 10,
-  },
-  dragOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  dragCardContainer: {
-    position: 'absolute',
-  },
-  dropMarker: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(16, 185, 129, 0.7)',
   },
 });
