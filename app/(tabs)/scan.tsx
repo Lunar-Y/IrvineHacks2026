@@ -33,6 +33,9 @@ export default function ScanScreen() {
   const [isLawnDetected, setIsLawnDetected] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
+  const [cameraReady, setCameraReady] = useState(false);
+  const [captureInProgress, setCaptureInProgress] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
@@ -65,12 +68,36 @@ export default function ScanScreen() {
   }, [permission?.granted]);
 
   const handleScan = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || captureInProgress) return;
 
     try {
+      if (!cameraReady) {
+        throw new Error('Camera is still initializing. Please wait one second and try again.');
+      }
+
+      setScanError(null);
+      setCaptureInProgress(true);
       setScanStatus('scanning');
 
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
+      const captureFrame = async () => {
+        return cameraRef.current!.takePictureAsync({ base64: true, quality: 0.5 });
+      };
+
+      let photo;
+      try {
+        photo = await captureFrame();
+      } catch (firstError: any) {
+        const firstMessage = String(firstError?.message || '');
+        const shouldRetry =
+          firstMessage.includes('Image could not be captured') ||
+          firstMessage.includes('not ready');
+
+        if (!shouldRetry) throw firstError;
+
+        await delay(300);
+        photo = await captureFrame();
+      }
+
       if (!photo?.base64) throw new Error('Failed to capture frame');
 
       setScanStatus('analyzing');
@@ -142,9 +169,12 @@ export default function ScanScreen() {
       setScanStatus('complete');
     } catch (error: any) {
       console.error('Scan failed:', error);
+      setScanError(error?.message || 'Unable to analyze the environment. Please try again.');
       // If your store has an error message field, store it there; otherwise just show generic
       // (Keeping this minimal to avoid store-method mismatches.)
       setScanStatus('error');
+    } finally {
+      setCaptureInProgress(false);
     }
   };
 
@@ -228,7 +258,17 @@ export default function ScanScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing="back"
+          onCameraReady={() => setCameraReady(true)}
+          onMountError={(event) => {
+            const message = event?.nativeEvent?.message || 'Camera failed to mount.';
+            setScanError(message);
+            setScanStatus('error');
+          }}
+        />
 
         {/* AR-style Viewfinder Brackets */}
         {(currentScan.status !== 'complete' && currentScan.status !== 'error') && (
@@ -261,13 +301,13 @@ export default function ScanScreen() {
         {currentScan.status === 'idle' && (
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.scanButton}
+              style={[styles.scanButton, (!cameraReady || captureInProgress) && { opacity: 0.6 }]}
               onPress={handleScan}
               disabled={
-                currentScan.status !== 'idle'
+                currentScan.status !== 'idle' || !cameraReady || captureInProgress
               }
             >
-              <Text style={styles.text}>Scan Lawn</Text>
+              <Text style={styles.text}>{cameraReady ? 'Scan Lawn' : 'Preparing Camera...'}</Text>
             </TouchableOpacity>
 
             {!locationPermission && (
@@ -304,7 +344,7 @@ export default function ScanScreen() {
             <Text style={[styles.errorEmoji, { marginBottom: 16 }]}>⚠️</Text>
             <Text style={[styles.errorText, { color: '#B24A3A', fontSize: 20, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Scan Failed</Text>
             <Text style={[styles.errorSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
-              {currentScan.imageUri || "Unable to analyze the environment. Please try again."}
+              {scanError || "Unable to analyze the environment. Please try again."}
             </Text>
             <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center' }]}
