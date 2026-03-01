@@ -53,10 +53,18 @@ export default function ScanARScreen() {
         <TouchableOpacity style={styles.openButton} onPress={() => router.push('/recommendations')}>
           <Text style={styles.openButtonText}>Open Recommendations</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.openButton, { marginTop: 12, backgroundColor: '#10b981', borderColor: '#10b981' }]}
+          onPress={() => router.push('/ar-demo')}
+        >
+          <Text style={styles.openButtonText}>Go to AR (Tree Demo)</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

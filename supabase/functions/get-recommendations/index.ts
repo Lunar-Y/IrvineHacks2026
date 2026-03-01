@@ -130,7 +130,8 @@ Each object in the array MUST follow this exact structure:
   "mature_height_meters": number,
   "water_requirement": "low | medium | high",
   "is_toxic_to_pets": boolean,
-  "care_tip": "One actionable care tip specific to this user's climate"
+  "care_tip": "One actionable care tip specific to this user's climate",
+  "model_archetype": "tree | large_tree | shrub | flower (choose the best 3D model category for this plant)"
 }`;
 
   const response = await fetch(`${DEDALUS_BASE_URL}/chat/completions`, {
