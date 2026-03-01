@@ -74,3 +74,9 @@ To maintain vertical rhythm and horizontal alignment, the application adheres to
 - ❌ **No drop shadows**
 - ❌ **No borders** on standard cards (unless defined as separators)
 - ❌ **No gradients** (except in future approved components)
+
+---
+
+## 4. Backlogged / Excluded Screens
+
+- **Care Page:** This page is currently backlogged. It should **not** be prioritized, implemented, or modified unless explicitly approved by the user later.
