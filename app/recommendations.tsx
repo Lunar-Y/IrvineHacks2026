@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   clamp,
@@ -36,6 +37,7 @@ const TAB_BAR_VISUAL_HEIGHT = 49;
 const PANEL_TO_TAB_GAP = 0;
 const CARD_WIDTH_RATIO = 0.66;
 const CARD_SEPARATOR = 14;
+const PANEL_DRAG_HANDLE_HEIGHT = 72;
 
 interface ActiveDragState {
   cardId: string;
@@ -91,9 +93,39 @@ export default function RecommendationsScreen() {
 
   const panelTop = SCREEN_HEIGHT * TOP_REGION_RATIO;
   const panelBottom = insets.bottom + TAB_BAR_VISUAL_HEIGHT + PANEL_TO_TAB_GAP;
+  const panelHeight = SCREEN_HEIGHT - panelTop - panelBottom;
+  const maxPanelDrag = Math.max(0, panelHeight - PANEL_DRAG_HANDLE_HEIGHT);
   const cardWidth = Math.min(330, SCREEN_WIDTH * CARD_WIDTH_RATIO);
   const horizontalInset = (SCREEN_WIDTH - cardWidth) / 2;
   const snapInterval = cardWidth + CARD_SEPARATOR;
+
+  const panelTranslateY = useSharedValue(0);
+  const panelDragStart = useSharedValue(0);
+  const panelAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: panelTranslateY.value }],
+  }));
+
+  const panelPanGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .onStart(() => {
+          panelDragStart.value = panelTranslateY.value;
+        })
+        .onUpdate((e) => {
+          panelTranslateY.value = clamp(panelDragStart.value + e.translationY, 0, maxPanelDrag);
+        })
+        .onEnd((e) => {
+          const current = panelTranslateY.value;
+          const threshold = maxPanelDrag * 0.5;
+          const shouldCollapse = current > threshold || e.velocityY > 150;
+          const toValue = shouldCollapse ? maxPanelDrag : 0;
+          panelTranslateY.value = withTiming(toValue, {
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
+          });
+        }),
+    [maxPanelDrag, panelDragStart, panelTranslateY]
+  );
 
   const dragOverlayStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: dragTranslateX.value }, { translateY: dragTranslateY.value }, { scale: dragScale.value }],
@@ -228,19 +260,23 @@ export default function RecommendationsScreen() {
         </View>
       </TouchableOpacity>
 
-      <View style={[styles.panel, { top: panelTop, bottom: panelBottom }]}>
-        <View style={styles.handleBar}>
-          <View style={styles.handle} />
-        </View>
+      <Animated.View style={[styles.panel, { top: panelTop, bottom: panelBottom }, panelAnimatedStyle]}>
+        <GestureDetector gesture={panelPanGesture}>
+          <View style={styles.panelDragHandle}>
+            <View style={styles.handleBar}>
+              <View style={styles.handle} />
+            </View>
 
-        <View style={styles.headerRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            Your Recommendations
-          </Text>
-          <View style={styles.zonePill}>
-            <Text style={styles.zonePillText}>🗺 {zoneLabel}</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.title} numberOfLines={1}>
+                Your Recommendations
+              </Text>
+              <View style={styles.zonePill}>
+                <Text style={styles.zonePillText}>🗺 {zoneLabel}</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </GestureDetector>
 
         <Text style={styles.hintText}>Swipe left/right • Drag up to place</Text>
 
@@ -291,7 +327,7 @@ export default function RecommendationsScreen() {
         />
 
         <Text style={styles.countText}>Showing {Math.max(deckItems.length, 5)} recommendations</Text>
-      </View>
+      </Animated.View>
 
       {activeDrag ? (
         <View pointerEvents="none" style={styles.dragOverlay}>
@@ -350,6 +386,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -6 },
     elevation: 16,
     overflow: 'visible',
+  },
+  panelDragHandle: {
+    paddingBottom: 4,
   },
   handleBar: {
     alignItems: 'center',
