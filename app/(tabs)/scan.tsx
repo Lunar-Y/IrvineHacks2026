@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useIsFocused } from '@react-navigation/native';
@@ -58,13 +57,8 @@ export default function ScanScreen() {
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations, setScanError: setStoreScanError, resetScan, clearPlacedPlants } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
-  // Auto-resume recommendations view if state persists but component unmounted
-  useEffect(() => {
-    if (currentScan.status === 'idle' && currentScan.recommendations?.length > 0) {
-      setShowRecommendationsOverlay(true);
-      setIsLawnDetected(true); // Persist green overlay lines if tracking is lost
-    }
-  }, [currentScan.status, currentScan.recommendations]);
+  // Removed auto-resume logic to ensure app starts on Scan Lawn page
+
 
   // Try to read existing location permission on mount (no prompt yet)
   useEffect(() => {
@@ -326,13 +320,6 @@ export default function ScanScreen() {
         )}
 
         {/* Gradient Mask for Bottom Controls */}
-        <LinearGradient
-          colors={['transparent', 'rgba(15, 20, 18, 0.8)', '#0F1412']}
-          locations={[0, 0.5, 1]}
-          style={styles.gradientMask}
-          pointerEvents="none"
-        />
-
         {(currentScan.status !== 'complete' && currentScan.status !== 'error' && !showRecommendationsOverlay) && (
           <LawnDetectionOverlay
             isLawnDetected={isLawnDetected}
@@ -520,13 +507,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
     borderLeftWidth: 0,
     borderBottomRightRadius: 16,
-  },
-  gradientMask: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '40%', // Covers the bottom 40% of the screen
   },
   buttonContainer: {
     position: 'absolute',

@@ -1,23 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import Colors from '../../constants/Colors';
 
-export function OverallScore() {
+interface Props {
+    score?: number;
+    hasData: boolean;
+    placeholder?: string;
+}
+
+export function OverallScore({ score, hasData, placeholder = '--' }: Props) {
+    const displayScore = hasData && Number.isFinite(score)
+        ? Math.max(0, Math.min(100, Math.round(score as number)))
+        : placeholder;
+
     return (
-        <View style={styles.container}>
+        <View style={styles.container} testID="overall-score-module">
             <View style={styles.gaugeContainer}>
-                <Svg width="240" height="240" viewBox="0 0 240 240">
+                <Svg width="240" height="240" viewBox="0 0 240 240" accessibilityLabel="overall-score-gauge">
                     <Path
                         d="M 23.0052 176 A 112 112 0 1 1 216.9948 176"
-                        stroke="#18201D"
-                        strokeWidth="18.4"
+                        stroke={Colors.lawnLens.secondary}
+                        strokeWidth="16"
                         strokeLinecap="round"
                         fill="none"
                     />
                 </Svg>
                 <View style={styles.textContainer}>
-                    <Text style={styles.scoreText}>--</Text>
-                    <Text style={styles.labelText}>Score Placeholder</Text>
+                    <Text style={styles.scoreText}>{displayScore}</Text>
+                    <Text style={styles.labelText}>Overall Impact Score</Text>
                 </View>
             </View>
         </View>
@@ -39,18 +50,17 @@ const styles = StyleSheet.create({
     textContainer: {
         position: 'absolute',
         alignItems: 'center',
-        // Move slightly up since the bottom is empty arc space
         transform: [{ translateY: -10 }],
     },
     scoreText: {
         fontFamily: 'Sora-Bold',
         fontSize: 52,
-        color: '#F5F7F6', // Option 2 Primary Typography
+        color: Colors.lawnLens.textPrimary,
         marginBottom: 4,
     },
     labelText: {
         fontFamily: 'Inter-Medium',
         fontSize: 14,
-        color: '#9FAFAA', // Option 2 Muted Typography
-    }
+        color: Colors.lawnLens.textMuted,
+    },
 });

@@ -11,7 +11,7 @@ export default function PlantsScreen() {
 
         {/* Top App Bar */}
         <View style={styles.appBar}>
-          <Text style={styles.headerTitle}>Saved Plants</Text>
+          <Text style={styles.headerTitle}>My Plants</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.iconButton}>
               <Feather name="menu" size={24} color="#9FAFAA" />
@@ -98,6 +98,5 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flex: 1,
-    paddingBottom: 100, // Safe Area + Tab Bar Space
   },
 });

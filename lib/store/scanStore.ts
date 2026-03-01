@@ -28,6 +28,17 @@ export interface PlantRecommendation {
   water_usage_liters_per_week?: number;
   image_url?: string;
   care_difficulty?: 'easy' | 'moderate' | 'hard';
+  environmental_data?: {
+    carbon_sequestration_kg_per_year: number;
+    water_usage_liters_per_week: number;
+    vs_lawn_water_savings_percent: number;
+    native_species: boolean;
+    pollinator_support_score: number;
+    biodiversity_score: number;
+    urban_heat_reduction_score: number;
+    soil_erosion_prevention: boolean;
+    nitrogen_fixing: boolean;
+  };
 }
 
 export type ScanStatus = 'idle' | 'scanning' | 'analyzing' | 'recommending' | 'complete' | 'error';
@@ -45,6 +56,13 @@ export interface PlacedItemData {
   id: number;
   archetype: string;
   pos: [number, number, number];
+  plantIndex: number;
+  speciesScientificName?: string;
+  speciesCommonName?: string;
+  imageUrl?: string;
+  waterRequirement?: 'low' | 'medium' | 'high';
+  matureHeightMeters?: number;
+  isToxicToPets?: boolean;
 }
 
 interface ScanStore {
@@ -61,6 +79,11 @@ interface ScanStore {
   setRecommendations: (recs: PlantRecommendation[]) => void;
   setAssembledProfile: (profile: AssembledProfile | null) => void;
   setScanError: (message: string | null) => void;
+  activeRecommendationIndex: number | null;
+  setActiveRecommendationIndex: (index: number | null) => void;
+  lastHorizontalIndex: number;
+  setLastHorizontalIndex: (index: number) => void;
+  getActiveRecommendation: () => PlantRecommendation | null;
   resetScan: () => void;
 
   placedPlantCounts: Record<string, number>;
@@ -69,7 +92,7 @@ interface ScanStore {
   clearPlacedPlants: () => void;
 }
 
-export const useScanStore = create<ScanStore>((set) => ({
+export const useScanStore = create<ScanStore>((set, get) => ({
   currentScan: {
     id: null,
     imageUri: null,
@@ -86,9 +109,27 @@ export const useScanStore = create<ScanStore>((set) => ({
     },
   })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
+  setRecommendations: (recs) => set((state) => ({
+    currentScan: {
+      ...state.currentScan,
+      recommendations: recs
+    }
+  })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
   setScanError: (errorMessage) => set((state) => ({ currentScan: { ...state.currentScan, errorMessage } })),
+  activeRecommendationIndex: null,
+  setActiveRecommendationIndex: (index) => set({ activeRecommendationIndex: index }),
+  lastHorizontalIndex: 0,
+  setLastHorizontalIndex: (index) => set({ lastHorizontalIndex: index }),
+  getActiveRecommendation: () => {
+    const state = get();
+    const index = state.activeRecommendationIndex;
+    const recommendations = state.currentScan.recommendations;
+    if (!Number.isInteger(index) || index === null || index < 0 || index >= recommendations.length) {
+      return null;
+    }
+    return recommendations[index];
+  },
   resetScan: () => set({
     currentScan: {
       id: null,
@@ -98,6 +139,8 @@ export const useScanStore = create<ScanStore>((set) => ({
       assembledProfile: null,
       errorMessage: null,
     },
+    activeRecommendationIndex: null,
+    lastHorizontalIndex: 0,
   }),
 
   placedPlantCounts: {},

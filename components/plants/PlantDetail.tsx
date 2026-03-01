@@ -23,13 +23,23 @@ export default function PlantDetail({ plant, visible, onClose }: PlantDetailProp
                 <ScrollView className="flex-1">
                     {/* Hero Image */}
                     <View className="w-full h-64 bg-zinc-900 relative">
-                        {plant.image_urls && plant.image_urls.length > 0 ? (
-                            <Image source={{ uri: plant.image_urls[0] }} className="w-full h-full" resizeMode="cover" />
-                        ) : (
-                            <View className="flex-1 items-center justify-center">
-                                <Text className="text-zinc-500">No Image Available</Text>
-                            </View>
-                        )}
+                        {(() => {
+                            const img = (plant as any).image_url || (plant.image_urls && plant.image_urls[0]);
+                            if (img) {
+                                return (
+                                    <Image
+                                        source={typeof img === 'string' ? { uri: img } : img}
+                                        className="w-full h-full"
+                                        resizeMode="cover"
+                                    />
+                                );
+                            }
+                            return (
+                                <View className="flex-1 items-center justify-center">
+                                    <Text className="text-zinc-500">No Image Available</Text>
+                                </View>
+                            );
+                        })()}
                         <View className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
                             <Text className="text-white text-3xl font-bold mb-1">{plant.common_name}</Text>
                             <Text className="text-green-400 text-lg italic">{plant.scientific_name}</Text>

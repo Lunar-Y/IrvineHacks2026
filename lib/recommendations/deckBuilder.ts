@@ -6,7 +6,6 @@
  * with an async `buildLiveDeck()` that fetches from the get-recommendations
  * Edge Function and falls back to mockRecommendations only on network failure.
  */
-import { MOCK_RECOMMENDATIONS } from '@/lib/mock/mockRecommendations';
 import { PlantRecommendation } from '@/lib/store/scanStore';
 
 export type DeckSource = 'dummy';
@@ -55,11 +54,10 @@ function dedupeRecommendations(plants: PlantRecommendation[]): PlantRecommendati
  */
 export function buildDummyDeck(
   minCount: number = 5,
-  seedPlants: PlantRecommendation[] = MOCK_RECOMMENDATIONS
+  seedPlants: PlantRecommendation[] = []
 ): RecommendationDeckItem[] {
   const safeMinCount = Math.max(1, Math.floor(minCount));
-  const sourcePlants = seedPlants.length > 0 ? seedPlants : MOCK_RECOMMENDATIONS;
-  const dedupedPlants = dedupeRecommendations(sourcePlants);
+  const dedupedPlants = dedupeRecommendations(seedPlants);
 
   if (dedupedPlants.length === 0) return [];
 

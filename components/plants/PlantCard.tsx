@@ -170,7 +170,11 @@ export default function PlantCard({
       <View ref={containerRef} style={styles.card}>
         <View style={styles.hero}>
           {plant.image_url ? (
-            <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
+            <Image
+              source={typeof plant.image_url === 'string' ? { uri: plant.image_url } : plant.image_url}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
               <Text style={styles.placeholderEmoji}>🌵</Text>

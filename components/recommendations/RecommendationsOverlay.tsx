@@ -4,12 +4,14 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -31,15 +33,22 @@ import { useScanStore } from '@/lib/store/scanStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_REGION_RATIO = 0.48;
-const TAB_BAR_VISUAL_HEIGHT = 49;
 const PANEL_TO_TAB_GAP = 0;
 const CARD_WIDTH_RATIO = 0.66;
 const CARD_SEPARATOR = 14;
 const PANEL_DRAG_HANDLE_HEIGHT = 72;
+const MINIMIZED_VISIBLE_STRIP_HEIGHT = 56;
+const MINIMIZED_EXTRA_LIFT_PX = 15;
+const TAB_BAR_HEIGHT_IOS = 64;
+const TAB_BAR_HEIGHT_ANDROID = 64;
+const TAB_BAR_BOTTOM_OFFSET_IOS = 30;
+const TAB_BAR_BOTTOM_OFFSET_ANDROID = 20;
 
 interface RecommendationsOverlayProps {
   onRequestRescan?: () => void;
   onPlantPress?: (plantIndex: number) => void;
+  hideScanAnotherButton?: boolean;
+  reserveTabBarSpace?: boolean;
 }
 
 function normalizePlantKey(value: string | undefined): string {
@@ -50,12 +59,17 @@ function getPlantMatchKey(plant: { common_name?: string; scientific_name?: strin
   return `${normalizePlantKey(plant.common_name)}::${normalizePlantKey(plant.scientific_name)}`;
 }
 
-export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }: RecommendationsOverlayProps) {
+export default function RecommendationsOverlay({
+  onRequestRescan,
+  onPlantPress,
+  hideScanAnotherButton = false,
+  reserveTabBarSpace = true,
+}: RecommendationsOverlayProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currentScan, resetScan } = useScanStore();
+  const { currentScan, resetScan, lastHorizontalIndex, setLastHorizontalIndex } = useScanStore();
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(lastHorizontalIndex);
   const [panelState, setPanelState] = useState<PanelState>('expanded');
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isReturningToScan, setIsReturningToScan] = useState(false);
@@ -74,21 +88,9 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
   }, [recommendations]);
 
   useEffect(() => {
-    /**
-     * CURRENT DUMMY BEHAVIOR:
-     * - This screen consumes dummy-backed normalized recommendations.
-     *
-     * FUTURE API WIRING STEPS:
-     * FUTURE_INTEGRATION: Swap this with validated backend payload mapping.
-     *
-     * VALIDATION/BACKFILL EXPECTATIONS:
-     * FUTURE_INTEGRATION: Keep min-count and de-dupe in the normalization layer.
-     *
-     * FAILURE HANDLING AND ANALYTICS HOOKS TO ADD LATER:
-     * FUTURE_INTEGRATION: Track deck impressions and detail-open CTR.
-     */
     setDeckItems(buildDummyDeck(5, recommendations));
-    setCurrentIndex(0);
+    // When syncing with real recommendations, reset or set to initial.
+    if (!lastHorizontalIndex) setCurrentIndex(0);
   }, [recommendations]);
 
   const zoneLabel = useMemo(() => {
@@ -100,10 +102,16 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
   }, [currentScan.assembledProfile]);
 
   const panelTop = SCREEN_HEIGHT * TOP_REGION_RATIO;
-  const panelBottom = insets.bottom + TAB_BAR_VISUAL_HEIGHT + PANEL_TO_TAB_GAP;
+  const panelBottom = PANEL_TO_TAB_GAP;
+  const tabBarHeight = Platform.OS === 'ios' ? TAB_BAR_HEIGHT_IOS : TAB_BAR_HEIGHT_ANDROID;
+  const tabBarOffset = Platform.OS === 'ios' ? TAB_BAR_BOTTOM_OFFSET_IOS : TAB_BAR_BOTTOM_OFFSET_ANDROID;
+  const tabBarClearance = reserveTabBarSpace ? tabBarHeight + tabBarOffset : 0;
   const panelHeight = SCREEN_HEIGHT - panelTop - panelBottom;
-  // Safe minimized position: keep only handle area above the nav bar.
-  const minimizedTranslateY = Math.max(0, panelHeight - PANEL_DRAG_HANDLE_HEIGHT);
+  // Minimized state leaves a stable tappable strip above the nav bar footprint.
+  const minimizedTranslateY = Math.max(
+    0,
+    panelHeight - (MINIMIZED_VISIBLE_STRIP_HEIGHT + tabBarClearance + MINIMIZED_EXTRA_LIFT_PX)
+  );
   const cardWidth = Math.min(330, SCREEN_WIDTH * CARD_WIDTH_RATIO);
   const horizontalInset = (SCREEN_WIDTH - cardWidth) / 2;
   const snapInterval = cardWidth + CARD_SEPARATOR;
@@ -207,8 +215,9 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
       const index = Math.round(event.nativeEvent.contentOffset.x / snapInterval);
       const boundedIndex = Math.max(0, Math.min(index, Math.max(deckItems.length - 1, 0)));
       setCurrentIndex(boundedIndex);
+      setLastHorizontalIndex(boundedIndex);
     },
-    [deckItems.length, snapInterval]
+    [deckItems.length, snapInterval, setLastHorizontalIndex]
   );
 
   const handleScrollToIndexFailed = useCallback(
@@ -223,15 +232,18 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <TouchableOpacity
-        accessibilityLabel="Scan another area"
-        hitSlop={8}
-        style={[styles.scanAgainButton, { top: insets.top + 12 }]}
-        disabled={isPanelAnimating || isReturningToScan}
-        onPress={handleScanAnotherArea}
-      >
-        <Text style={styles.scanAgainText}>Scan Another Area</Text>
-      </TouchableOpacity>
+      {!hideScanAnotherButton ? (
+        <TouchableOpacity
+          accessibilityLabel="Reset scan"
+          accessibilityHint="Returns to scan lawn screen"
+          hitSlop={10}
+          style={[styles.scanAgainButton, { top: insets.top + 14 }]}
+          disabled={isPanelAnimating || isReturningToScan}
+          onPress={handleScanAnotherArea}
+        >
+          <FontAwesome name="undo" size={16} color="#F5F7F6" />
+        </TouchableOpacity>
+      ) : null}
 
       <TouchableOpacity
         accessibilityLabel="Minimize recommendations"
@@ -252,10 +264,13 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
         <GestureDetector gesture={panelPanGesture}>
           <View style={styles.panelDragHandle}>
             <TouchableOpacity
+              accessibilityRole="button"
               accessibilityLabel="Expand recommendations"
+              accessibilityHint="Opens the recommendations panel"
               hitSlop={10}
               onPress={expandPanel}
               activeOpacity={0.85}
+              style={styles.expandHandleButton}
             >
               <View style={styles.handleBar}>
                 <View style={styles.handle} />
@@ -282,6 +297,7 @@ export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }
             ref={flatListRef}
             data={deckItems}
             keyExtractor={(item) => item.id}
+            initialScrollIndex={lastHorizontalIndex}
             horizontal
             scrollEnabled
             showsHorizontalScrollIndicator={false}
@@ -341,24 +357,14 @@ const styles = StyleSheet.create({
   },
   scanAgainButton: {
     position: 'absolute',
-    right: 14,
+    right: 20,
     zIndex: 30,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(16, 28, 21, 0.88)',
-    borderWidth: 1,
-    borderColor: 'rgba(183, 211, 192, 0.45)',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 12,
-  },
-  scanAgainText: {
-    color: '#f5f7f6',
-    fontWeight: '700',
-    fontSize: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2F6B4F',
   },
   dismissHint: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -387,6 +393,13 @@ const styles = StyleSheet.create({
   },
   panelDragHandle: {
     paddingBottom: 4,
+  },
+  expandHandleButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   handleBar: {
     alignItems: 'center',
