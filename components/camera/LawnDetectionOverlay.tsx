@@ -12,10 +12,7 @@ export default function LawnDetectionOverlay({ isLawnDetected, confidence, surfa
   // For the prototype, we show a "Focus Ring" that turns green when the lawn is detected
   return (
     <View style={styles.container}>
-      <View style={[
-        styles.focusRing,
-        { borderColor: isLawnDetected ? '#4CAF50' : 'rgba(255,255,255,0.5)' }
-      ]}>
+      <View style={[styles.focusRing]}>
         {!isLawnDetected && (
           <Text style={styles.hint}>Point at your lawn or soil area</Text>
         )}
@@ -42,13 +39,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   focusRing: {
-    width: 280,
-    height: 280,
-    borderWidth: 2,
-    borderRadius: 140,
-    borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 60, // Shifts the text up to perfectly align inside the AR brackets
   },
   hint: {
     color: 'white',
