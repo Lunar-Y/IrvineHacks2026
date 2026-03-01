@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { useScanStore } from '@/lib/store/scanStore';
 import { getModelForArchetype } from '@/lib/ar/modelMapping';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -180,6 +181,7 @@ export default function ARNativeScreen() {
   const activePlant = recommendations[activePlantIndex];
   const selectedArchetype = activePlant?.model_archetype || 'tree';
 
+  const isFocused = useIsFocused();
   const [isReady, setIsReady] = useState(false);
   const [plantCount, setPlantCount] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
@@ -213,18 +215,22 @@ export default function ARNativeScreen() {
 
   return (
     <View style={styles.container}>
-      <ViroARSceneNavigator
-        autofocus
-        initialScene={{ scene: SinglePlantScene }}
-        viroAppProps={{
-          setPlaceFn,
-          onAimTooHigh: showAimTooHigh,
-          onPlaced,
-          selectedArchetype,
-          _onTrackingReady: setIsReady,
-        }}
-        style={styles.scene}
-      />
+      {isFocused ? (
+        <ViroARSceneNavigator
+          autofocus
+          initialScene={{ scene: SinglePlantScene }}
+          viroAppProps={{
+            setPlaceFn,
+            onAimTooHigh: showAimTooHigh,
+            onPlaced,
+            selectedArchetype,
+            _onTrackingReady: setIsReady,
+          }}
+          style={styles.scene}
+        />
+      ) : (
+        <View style={styles.scene} />
+      )}
 
       {/* ── Top Bar ── */}
       <View style={[styles.topBar, { top: Math.max(insets.top, 14) }]} pointerEvents="box-none">
