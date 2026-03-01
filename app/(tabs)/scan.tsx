@@ -20,6 +20,23 @@ const STATUS_LABELS: Record<string, string> = {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Infer a short cause label from the error message for console logging. */
+function inferScanErrorCause(message: string): string | null {
+  if (!message) return null;
+  const m = message.toLowerCase();
+  if (m.includes('api key') || m.includes('dedalus_api_key') || m.includes('401')) return 'API key missing or invalid';
+  if (m.includes('too large') || m.includes('413') || m.includes('payload')) return 'Image too large';
+  if (m.includes('too small') || m.includes('truncated')) return 'Image data too small or incomplete';
+  if (m.includes('invalid json') || m.includes('could not extract')) return 'Vision API returned invalid JSON';
+  if (m.includes('no choices') || m.includes('empty or invalid content')) return 'Vision model returned no/empty response';
+  if (m.includes('rate limit') || m.includes('429')) return 'Rate limit exceeded';
+  if (m.includes('403') || m.includes('access denied')) return 'Access denied to Vision API';
+  if (m.includes('404') || m.includes('not found')) return 'Vision model or endpoint not found';
+  if (m.includes('jwt') || m.includes('unauthorized') || m.includes('token')) return 'Auth/JWT error';
+  if (m.includes('network') || m.includes('fetch') || m.includes('failed to fetch')) return 'Network error';
+  return null;
+}
+
 function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantRecommendation[] {
   return plants.map(({ id, source, rank, ...plant }) => plant);
 }
@@ -34,7 +51,7 @@ export default function ScanScreen() {
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
 
-  const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
+  const { currentScan, setScanStatus, setAssembledProfile, setRecommendations, setScanError } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
   // Try to read existing location permission on mount (no prompt yet)
@@ -84,8 +101,20 @@ export default function ScanScreen() {
         supabase.functions.invoke('assemble-profile', { body: { lat, lng } }),
       ]);
 
-      if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
-      if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
+      if (visionResponse.error) {
+        const serverMessage = visionResponse.data && typeof visionResponse.data === 'object' && 'error' in visionResponse.data
+          ? (visionResponse.data as { error: string }).error
+          : visionResponse.error.message;
+        const err: any = new Error(`Vision API: ${serverMessage}`);
+        err.code = (visionResponse.error as any)?.context?.status ?? (visionResponse.error as any)?.status;
+        throw err;
+      }
+      if (profileResponse.error) {
+        const serverMessage = profileResponse.data && typeof profileResponse.data === 'object' && 'error' in profileResponse.data
+          ? (profileResponse.data as { error: string }).error
+          : profileResponse.error.message;
+        throw new Error(`Profile API: ${serverMessage}`);
+      }
 
       // Parse Vision Result
       let visionData: any;
@@ -141,9 +170,16 @@ export default function ScanScreen() {
       }
       setScanStatus('complete');
     } catch (error: any) {
-      console.error('Scan failed:', error);
-      // If your store has an error message field, store it there; otherwise just show generic
-      // (Keeping this minimal to avoid store-method mismatches.)
+      const message = error?.message ?? 'Scan failed';
+      const status = error?.code ?? error?.status;
+      const cause = inferScanErrorCause(message);
+      console.error('Scan failed:', {
+        message,
+        ...(status != null && { status }),
+        ...(cause && { cause }),
+        errorName: error?.name,
+      });
+      setScanError(message);
       setScanStatus('error');
     }
   };
@@ -304,7 +340,7 @@ export default function ScanScreen() {
             <Text style={[styles.errorEmoji, { marginBottom: 16 }]}>⚠️</Text>
             <Text style={[styles.errorText, { color: '#B24A3A', fontSize: 20, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Scan Failed</Text>
             <Text style={[styles.errorSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
-              {currentScan.imageUri || "Unable to analyze the environment. Please try again."}
+              {currentScan.errorMessage || 'Unable to analyze the environment. Please try again.'}
             </Text>
             <TouchableOpacity
               style={[styles.retryButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center' }]}

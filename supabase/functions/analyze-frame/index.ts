@@ -28,7 +28,9 @@
 //   }
 //
 // ENVIRONMENT VARIABLES (set via `supabase secrets set`):
-//   - DEDALUS_API_KEY: Your Dedalus API key.
+//   - DEDALUS_API_KEY: Your Dedalus API key (e.g. dsk-live-...).
+//   Run: supabase secrets set DEDALUS_API_KEY=your_key
+//   Edge Functions do NOT read .env; they only read Supabase Secrets.
 // =============================================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -45,6 +47,16 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ~6MB base64 = ~4.5MB raw image. Larger payloads can time out or be rejected by the Vision API.
+const MAX_IMAGE_BASE64_LENGTH = 6 * 1024 * 1024;
+
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
 
 // The structured JSON schema we instruct the LLM to return.
 // Being explicit about the schema dramatically reduces malformed-JSON errors.
@@ -80,26 +92,35 @@ serve(async (req: Request) => {
     // being exposed in the mobile app's network traffic.
     const dedalusApiKey = Deno.env.get("DEDALUS_API_KEY");
     if (!dedalusApiKey) {
-      throw new Error("DEDALUS_API_KEY is not set. Run: supabase secrets set DEDALUS_API_KEY=...");
+      return jsonError(
+        "Server configuration error: DEDALUS_API_KEY is not set. Run: supabase secrets set DEDALUS_API_KEY=your_key",
+        500
+      );
     }
 
     // -----------------------------------------------------------------------
     // STEP 2: Parse the incoming request and validate the image
     // -----------------------------------------------------------------------
-    const { image } = await req.json();
+    let body: { image?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return jsonError("Invalid request body: expected JSON with an `image` field (base64 string).", 400);
+    }
+    const { image } = body;
 
     if (!image || typeof image !== "string") {
-      return new Response(
-        JSON.stringify({ error: "Request body must include `image` (a base64-encoded JPEG string)." }),
-        { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
+      return jsonError("Missing or invalid image: request body must include `image` as a base64-encoded JPEG string.", 400);
     }
 
-    // Basic size check — a very small base64 string can't be a real photo.
     if (image.length < 1000) {
-      return new Response(
-        JSON.stringify({ error: "Image data appears too small. Ensure you are sending a complete base64 JPEG." }),
-        { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      return jsonError("Image data too small: ensure you are sending a complete base64 JPEG (not an empty or truncated string).", 400);
+    }
+
+    if (image.length > MAX_IMAGE_BASE64_LENGTH) {
+      return jsonError(
+        "Image too large: the photo exceeds the maximum size. Use a lower quality or resolution (recommended under ~4MB).",
+        400
       );
     }
 
@@ -109,7 +130,7 @@ serve(async (req: Request) => {
     // We use the chat completions endpoint with image_url content type.
     // The image is passed as a data URI (data:image/jpeg;base64,...).
     const visionPayload = {
-      model: "gpt-5.2", // Dedalus flagship model supports vision inputs
+      model: "openai/gpt-5.2", // Dedalus requires provider prefix; see docs.dedaluslabs.ai/sdk/images
       temperature: 0.1, // Deterministic output is important for JSON parsing
       messages: [
         {
@@ -152,14 +173,52 @@ For estimated_sun_exposure, analyze shadows, plant health & color, and wall/surf
 
     if (!visionResponse.ok) {
       const errBody = await visionResponse.text();
-      throw new Error(`Dedalus Vision API error ${visionResponse.status}: ${errBody}`);
+      const status = visionResponse.status;
+      let apiMessage: string;
+      try {
+        const errJson = JSON.parse(errBody);
+        apiMessage = errJson?.error?.message ?? errJson?.message ?? errJson?.error ?? errBody;
+      } catch {
+        apiMessage = errBody || `HTTP ${status}`;
+      }
+      const cause =
+        status === 401
+          ? "Invalid or missing Vision API key (401). Check DEDALUS_API_KEY in Supabase secrets."
+          : status === 403
+          ? "Access denied to Vision API (403). Key may be invalid or not allowed for this endpoint."
+          : status === 404
+          ? "Vision model or endpoint not found (404). Model name may be wrong or unavailable."
+          : status === 413
+          ? "Request payload too large (413). Image size exceeds Vision API limit."
+          : status === 429
+          ? "Vision API rate limit exceeded (429). Try again in a moment."
+          : status >= 500
+          ? "Vision service error (5xx). The provider may be temporarily unavailable."
+          : `Vision API error (${status})`;
+      return jsonError(`${cause} ${typeof apiMessage === "string" && apiMessage ? `— ${apiMessage.slice(0, 200)}` : ""}`.trim(), 502);
     }
 
     // -----------------------------------------------------------------------
     // STEP 4: Parse the Vision API response and return to the client
     // -----------------------------------------------------------------------
     const visionData = await visionResponse.json();
-    const rawContent: string = visionData.choices[0].message.content;
+    const choices = visionData?.choices;
+    if (!Array.isArray(choices) || choices.length === 0) {
+      return jsonError(
+        "Vision API returned no choices. The model may be unavailable or the request was rejected. Check Supabase logs for the raw response.",
+        502
+      );
+    }
+    const firstChoice = choices[0];
+    const content = firstChoice?.message?.content;
+    if (content == null || typeof content !== "string") {
+      const finishReason = firstChoice?.finish_reason ?? "unknown";
+      return jsonError(
+        `Vision API returned empty or invalid content (finish_reason: ${finishReason}). Model may not support this request or output was blocked.`,
+        502
+      );
+    }
+    const rawContent: string = content;
 
     // Safely parse the JSON. The LLM should return raw JSON, but sometimes it
     // wraps it in ```json ... ``` markdown fences. The regex handles both cases.
@@ -167,12 +226,21 @@ For estimated_sun_exposure, analyze shadows, plant health & color, and wall/surf
     try {
       parsedProfile = JSON.parse(rawContent);
     } catch {
-      // Attempt to strip markdown fences and re-parse
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        parsedProfile = JSON.parse(jsonMatch[0]);
+        try {
+          parsedProfile = JSON.parse(jsonMatch[0]);
+        } catch {
+          return jsonError(
+            "Vision API returned invalid JSON. The model output could not be parsed. Try scanning again.",
+            502
+          );
+        }
       } else {
-        throw new Error(`Could not extract valid JSON from Vision API response: ${rawContent}`);
+        return jsonError(
+          "Vision API response was not valid JSON. The model may have returned plain text or markdown. Try scanning again.",
+          502
+        );
       }
     }
 
@@ -185,13 +253,8 @@ For estimated_sun_exposure, analyze shadows, plant health & color, and wall/surf
     );
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error";
     console.error("[analyze-frame] Unhandled error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      }
-    );
+    return jsonError(`Server error: ${message}`, 500);
   }
 });

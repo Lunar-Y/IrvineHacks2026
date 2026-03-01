@@ -48,11 +48,13 @@ interface ScanStore {
     status: ScanStatus;
     recommendations: PlantRecommendation[];
     assembledProfile: AssembledProfile | null;
+    errorMessage: string | null;
   };
   setScanStatus: (status: ScanStatus) => void;
   setScanImage: (uri: string) => void;
   setRecommendations: (recs: PlantRecommendation[]) => void;
   setAssembledProfile: (profile: AssembledProfile | null) => void;
+  setScanError: (message: string | null) => void;
   resetScan: () => void;
 }
 
@@ -63,11 +65,19 @@ export const useScanStore = create<ScanStore>((set) => ({
     status: 'idle',
     recommendations: [],
     assembledProfile: null,
+    errorMessage: null,
   },
-  setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
+  setScanStatus: (status) => set((state) => ({
+    currentScan: {
+      ...state.currentScan,
+      status,
+      ...(status === 'idle' ? { errorMessage: null } : {}),
+    },
+  })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
   setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
+  setScanError: (errorMessage) => set((state) => ({ currentScan: { ...state.currentScan, errorMessage } })),
   resetScan: () => set({
     currentScan: {
       id: null,
@@ -75,6 +85,7 @@ export const useScanStore = create<ScanStore>((set) => ({
       status: 'idle',
       recommendations: [],
       assembledProfile: null,
+      errorMessage: null,
     },
   }),
 }));
