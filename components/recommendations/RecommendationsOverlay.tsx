@@ -55,9 +55,10 @@ interface ActiveDragState {
 
 interface RecommendationsOverlayProps {
   onRequestRescan?: () => void;
+  onPlantPress?: (plantIndex: number) => void;
 }
 
-export default function RecommendationsOverlay({ onRequestRescan }: RecommendationsOverlayProps) {
+export default function RecommendationsOverlay({ onRequestRescan, onPlantPress }: RecommendationsOverlayProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currentScan, resetScan } = useScanStore();
@@ -424,7 +425,12 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
                           plant.common_name === item.common_name &&
                           plant.scientific_name === item.scientific_name
                       );
-                      router.push(`/plant/${matchingIndex >= 0 ? matchingIndex : 0}`);
+                      const idx = matchingIndex >= 0 ? matchingIndex : 0;
+                      if (onPlantPress) {
+                        onPlantPress(idx);
+                      } else {
+                        router.push(`/plant/${idx}`);
+                      }
                     }}
                   />
                 </View>

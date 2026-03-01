@@ -175,7 +175,8 @@ export default function ARNativeScreen() {
   const { currentScan, resetScan, clearPlacedPlants, placedPlantCounts } = useScanStore();
   const recommendations = currentScan.recommendations;
 
-  const activePlantIndex = parseInt(id ?? '0', 10);
+  // Track the active plant in local state so swapping plants never causes navigation
+  const [activePlantIndex, setActivePlantIndex] = useState(() => parseInt(id ?? '0', 10));
   const activePlant = recommendations[activePlantIndex];
   const selectedArchetype = activePlant?.model_archetype || 'tree';
 
@@ -183,16 +184,10 @@ export default function ARNativeScreen() {
   const [mountViro, setMountViro] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [canPlace, setCanPlace] = useState(false);
-  // Optional local tracking, but global counts reflect everywhere
   const totalPlacedCount = Object.values(placedPlantCounts).reduce((acc, c) => acc + c, 0);
   const [hint, setHint] = useState<string | null>(null);
 
   const [showDeck, setShowDeck] = useState(false);
-
-  // Every time the user navigates into AR for a particular plant ID, hide the deck and return to camera controls
-  useEffect(() => {
-    setShowDeck(false);
-  }, [id]);
 
   const [placeFn, setPlaceFn] = useState<(() => void) | null>(null);
 
@@ -220,16 +215,11 @@ export default function ARNativeScreen() {
     setTimeout(() => setHint(null), 1500);
   };
 
+  // Mount Viro ONCE when the screen first becomes focused. Never unmount it—
+  // tearing down the scene resets spatial tracking and causes coordinate drift.
   useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    if (isFocused) {
-      // 300ms delay to ensure previous screens unbind from the camera hardware cleanly
-      t = setTimeout(() => setMountViro(true), 300);
-    } else {
-      setMountViro(false);
-      setIsReady(false);
-      setCanPlace(false);
-    }
+    if (!isFocused || mountViro) return; // already mounted, or not focused yet
+    const t = setTimeout(() => setMountViro(true), 300);
     return () => clearTimeout(t);
   }, [isFocused]);
 
@@ -305,6 +295,10 @@ export default function ARNativeScreen() {
             resetScan();
             clearPlacedPlants();
             router.navigate('/(tabs)/scan');
+          }}
+          onPlantPress={(idx) => {
+            setActivePlantIndex(idx);
+            setShowDeck(false);
           }}
         />
       )}
