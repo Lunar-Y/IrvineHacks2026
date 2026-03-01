@@ -227,7 +227,7 @@ export default function ScanScreen() {
           <Text style={styles.errorEmoji}>🌱</Text>
           <Text style={[styles.successTitle, { color: '#F5F7F6', fontSize: 18, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Permissions Required</Text>
           <Text style={[styles.successSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
-            LawnLens needs camera and location access to accurately identify the best plants for your yard's unique environment.
+            GreenScape needs camera and location access to accurately identify the best plants for your yard's unique environment.
           </Text>
 
           <TouchableOpacity

@@ -25,7 +25,7 @@ export default function Onboarding() {
 
     const steps = [
         {
-            title: 'Welcome to LawnLens',
+            title: 'Welcome to GreenScape',
             description: 'Discover the perfect plants for your unique environment in seconds.',
             icon: 'leaf-outline' as const,
             action: nextStep,
