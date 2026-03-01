@@ -20,7 +20,9 @@
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to use your camera",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use your microphone",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIRequiredDeviceCapabilities": ["arkit"]
+        "UIRequiredDeviceCapabilities": [
+          "arkit"
+        ]
       },
       "bundleIdentifier": "com.anonymous.IrvineHacks2026"
     },
@@ -50,6 +52,7 @@
     "experiments": {
       "typedRoutes": true
     },
+    "newArchEnabled": true,
     "extra": {
       "router": {},
       "eas": {

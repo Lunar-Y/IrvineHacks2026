@@ -43,6 +43,8 @@ interface ScanStore {
   setScanImage: (uri: string) => void;
   setAssembledProfile: (profile: Record<string, unknown>) => void;
   setRecommendations: (plants: PlantRecommendation[]) => void;
+  arPlacePlant: ((index: number, name: string) => void) | null;
+  setArPlacePlant: (fn: ((index: number, name: string) => void) | null) => void;
   resetScan: () => void;
 }
 
@@ -54,6 +56,8 @@ export const useScanStore = create<ScanStore>((set) => ({
     assembledProfile: null,
   },
   recommendations: [],
+  arPlacePlant: null,
+  setArPlacePlant: (fn) => set({ arPlacePlant: fn }),
   setScanStatus: (status) =>
     set((state) => ({ currentScan: { ...state.currentScan, status } })),
   setScanImage: (uri) =>

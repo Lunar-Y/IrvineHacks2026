@@ -49,7 +49,7 @@ interface ActiveDragState {
 export default function RecommendationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { recommendations, currentScan } = useScanStore();
+  const { recommendations, currentScan, arPlacePlant } = useScanStore();
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeDrag, setActiveDrag] = useState<ActiveDragState | null>(null);
@@ -64,19 +64,6 @@ export default function RecommendationsScreen() {
   const dragOpacity = useSharedValue(1);
 
   useEffect(() => {
-    /**
-     * CURRENT DUMMY BEHAVIOR:
-     * - This screen consumes dummy-backed normalized recommendations.
-     *
-     * FUTURE API WIRING STEPS:
-     * FUTURE_INTEGRATION: Swap this with validated backend payload mapping.
-     *
-     * VALIDATION/BACKFILL EXPECTATIONS:
-     * FUTURE_INTEGRATION: Keep min-count and de-dupe in the normalization layer.
-     *
-     * FAILURE HANDLING AND ANALYTICS HOOKS TO ADD LATER:
-     * FUTURE_INTEGRATION: Track deck impressions and detail-open CTR.
-     */
     setDeckItems(buildDummyDeck(5, recommendations));
     setCurrentIndex(0);
   }, [recommendations]);
@@ -95,12 +82,17 @@ export default function RecommendationsScreen() {
   const horizontalInset = (SCREEN_WIDTH - cardWidth) / 2;
   const snapInterval = cardWidth + CARD_SEPARATOR;
 
-  const dragOverlayStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: dragTranslateX.value }, { translateY: dragTranslateY.value }, { scale: dragScale.value }],
-    opacity: dragOpacity.value,
-    zIndex: 9999,
-    elevation: 9999,
-  }));
+  const dragOverlayStyle = useAnimatedStyle(() => {
+    if (!activeDragRef.current) return { opacity: 0 };
+    return {
+      transform: [
+        { translateX: activeDragRef.current.startRect.x + dragTranslateX.value },
+        { translateY: activeDragRef.current.startRect.y + dragTranslateY.value },
+        { scale: dragScale.value }
+      ],
+      opacity: dragOpacity.value,
+    };
+  });
 
   const clearDragState = useCallback(() => {
     activeDragRef.current = null;
@@ -113,125 +105,68 @@ export default function RecommendationsScreen() {
     dragOpacity.value = 1;
   }, [dragOpacity, dragScale, dragTranslateX, dragTranslateY]);
 
-  const navigateToAR = useCallback(
-    (id: number) => {
-      router.push(`/ar/${id}`);
-    },
-    [router]
-  );
+  const handleLiftStart = useCallback((payload: LiftStartPayload) => {
+    const nextDrag: ActiveDragState = {
+      cardId: payload.cardId,
+      plant: payload.plant,
+      startRect: payload.originRect,
+      touchOffsetX: payload.touchX - payload.originRect.x,
+      touchOffsetY: payload.touchY - payload.originRect.y,
+      isDragging: true,
+    };
+    activeDragRef.current = nextDrag;
+    setActiveDrag(nextDrag);
+    dragTranslateX.value = 0;
+    dragTranslateY.value = 0;
+    dragScale.value = 1.1;
+  }, [dragScale, dragTranslateX, dragTranslateY]);
 
-  const handleMomentumEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (activeDragRef.current || isLiftActive) return;
-      const index = Math.round(event.nativeEvent.contentOffset.x / snapInterval);
-      const boundedIndex = Math.max(0, Math.min(index, Math.max(deckItems.length - 1, 0)));
-      setCurrentIndex(boundedIndex);
-    },
-    [deckItems.length, isLiftActive, snapInterval]
-  );
+  const handleLiftMove = useCallback((payload: LiftMovePayload) => {
+    const drag = activeDragRef.current;
+    if (!drag) return;
+    // We get absolute coords from the gesture, so we subtract start pos
+    dragTranslateX.value = payload.x - drag.startRect.x - drag.touchOffsetX;
+    dragTranslateY.value = payload.y - drag.startRect.y - drag.touchOffsetY;
 
-  const handleScrollToIndexFailed = useCallback(
-    ({ index }: { index: number }) => {
-      flatListRef.current?.scrollToOffset({
-        offset: Math.max(0, index * snapInterval),
-        animated: true,
-      });
-    },
-    [snapInterval]
-  );
+    const liftedAmount = clamp(-dragTranslateY.value, 0, 300);
+    dragScale.value = interpolate(liftedAmount, [0, 300], [1.1, 1.2]);
+    dragOpacity.value = interpolate(liftedAmount, [0, 300], [1, 0.9]);
+  }, [dragOpacity, dragScale, dragTranslateX, dragTranslateY]);
 
-  const handleLiftStart = useCallback(
-    (payload: LiftStartPayload) => {
-      const nextDrag: ActiveDragState = {
-        cardId: payload.cardId,
-        plant: payload.plant,
-        startRect: payload.originRect,
-        touchOffsetX: payload.touchX - payload.originRect.x,
-        touchOffsetY: payload.touchY - payload.originRect.y,
-        isDragging: true,
-      };
+  const handleLiftEnd = useCallback((payload: LiftEndPayload) => {
+    const drag = activeDragRef.current;
+    if (!drag) return;
 
-      activeDragRef.current = nextDrag;
-      setActiveDrag(nextDrag);
-      setDropTarget(null);
-      dragTranslateX.value = 0;
-      dragTranslateY.value = 0;
-      dragScale.value = 1;
-      dragOpacity.value = 1;
-    },
-    [dragOpacity, dragScale, dragTranslateX, dragTranslateY]
-  );
+    const isValidDrop = (payload.y < panelTop + 80) || payload.velocityY < -500;
 
-  const handleLiftMove = useCallback(
-    (payload: LiftMovePayload) => {
-      const drag = activeDragRef.current;
-      if (!drag || drag.cardId !== payload.cardId) return;
+    if (isValidDrop) {
+      setDropTarget({ x: payload.x, y: payload.y });
+      const matchingIndex = deckItems.findIndex(item => item.id === drag.cardId);
+      const plantIndex = matchingIndex >= 0 ? matchingIndex : 0;
 
-      const nextX = payload.x - drag.startRect.x - drag.touchOffsetX;
-      const nextY = payload.y - drag.startRect.y - drag.touchOffsetY;
-      dragTranslateX.value = nextX;
-      dragTranslateY.value = nextY;
-
-      const liftedAmount = clamp(-nextY, 0, 260);
-      dragScale.value = interpolate(liftedAmount, [0, 260], [1, 1.03]);
-      dragOpacity.value = interpolate(liftedAmount, [0, 260], [1, 0.95]);
-    },
-    [dragOpacity, dragScale, dragTranslateX, dragTranslateY]
-  );
-
-  const handleLiftEnd = useCallback(
-    (payload: LiftEndPayload) => {
-      const drag = activeDragRef.current;
-      if (!drag || drag.cardId !== payload.cardId) return;
-
-      const isValidDrop = payload.y < panelTop;
-
-      if (isValidDrop) {
-        setDropTarget({ x: payload.x, y: payload.y });
-        const matchingIndex = recommendations.findIndex(
-          (plant) =>
-            plant.common_name === drag.plant.common_name &&
-            plant.scientific_name === drag.plant.scientific_name
-        );
-        const arPayloadId = matchingIndex >= 0 ? matchingIndex : 0;
-
-        const targetTranslateX = payload.x - drag.startRect.x - drag.startRect.width / 2;
-        const targetTranslateY = payload.y - drag.startRect.y - drag.startRect.height / 2;
-
-        dragTranslateX.value = withTiming(targetTranslateX, {
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-        });
-        dragTranslateY.value = withTiming(targetTranslateY, {
-          duration: 220,
-          easing: Easing.out(Easing.cubic),
-        });
-        dragScale.value = withTiming(0.08, { duration: 220, easing: Easing.out(Easing.cubic) });
-        dragOpacity.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) }, (finished) => {
-          if (finished) {
-            runOnJS(clearDragState)();
-            runOnJS(navigateToAR)(arPayloadId);
+      // Animate "into" the AR
+      dragScale.value = withTiming(0.01, { duration: 300 });
+      dragOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
+        if (finished) {
+          runOnJS(clearDragState)();
+          if (arPlacePlant) {
+            runOnJS(arPlacePlant)(plantIndex, drag.plant.common_name);
           }
-        });
-        return;
-      }
-
-      dragTranslateX.value = withSpring(0, { damping: 18, stiffness: 220 });
-      dragTranslateY.value = withSpring(0, { damping: 18, stiffness: 220 });
-      dragScale.value = withSpring(1, { damping: 18, stiffness: 220 });
-      dragOpacity.value = withSpring(1, { damping: 18, stiffness: 220 }, (finished) => {
-        if (finished) runOnJS(clearDragState)();
+        }
       });
-    },
-    [clearDragState, dragOpacity, dragScale, dragTranslateX, dragTranslateY, navigateToAR, panelTop, recommendations]
-  );
+      return;
+    }
 
-  const handleLiftCancel = useCallback(
-    (_payload: LiftCancelPayload) => {
-      clearDragState();
-    },
-    [clearDragState]
-  );
+    // Snap back
+    dragTranslateX.value = withSpring(0);
+    dragTranslateY.value = withSpring(0);
+    dragScale.value = withSpring(1);
+    dragOpacity.value = withSpring(1, {}, (finished) => {
+      if (finished) runOnJS(clearDragState)();
+    });
+  }, [clearDragState, deckItems, dragOpacity, dragScale, dragTranslateX, dragTranslateY, panelTop, arPlacePlant]);
+
+  const handleLiftCancel = useCallback(() => clearDragState(), [clearDragState]);
 
   return (
     <View style={styles.root} pointerEvents="box-none">
@@ -265,7 +200,6 @@ export default function RecommendationsScreen() {
           data={deckItems}
           keyExtractor={(item) => item.id}
           horizontal
-          scrollEnabled={!isLiftActive && !activeDrag}
           showsHorizontalScrollIndicator={false}
           snapToAlignment="start"
           decelerationRate="fast"
@@ -275,8 +209,11 @@ export default function RecommendationsScreen() {
             offset: snapInterval * index,
             index,
           })}
-          onMomentumScrollEnd={handleMomentumEnd}
-          onScrollToIndexFailed={handleScrollToIndexFailed}
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(event.nativeEvent.contentOffset.x / snapInterval);
+            const boundedIndex = Math.max(0, Math.min(index, Math.max(deckItems.length - 1, 0)));
+            setCurrentIndex(boundedIndex);
+          }}
           contentContainerStyle={{ paddingHorizontal: horizontalInset, paddingBottom: 10 }}
           ItemSeparatorComponent={() => <View style={{ width: CARD_SEPARATOR }} />}
           renderItem={({ item, index }) => {
@@ -294,9 +231,7 @@ export default function RecommendationsScreen() {
                   onLiftStateChange={setIsLiftActive}
                   onPress={() => {
                     const matchingIndex = recommendations.findIndex(
-                      (plant) =>
-                        plant.common_name === item.common_name &&
-                        plant.scientific_name === item.scientific_name
+                      (p) => p.common_name === item.common_name && p.scientific_name === item.scientific_name
                     );
                     router.push(`/plant/${matchingIndex >= 0 ? matchingIndex : 0}`);
                   }}
@@ -305,37 +240,23 @@ export default function RecommendationsScreen() {
             );
           }}
         />
-
-        <Text style={styles.countText}>Showing {Math.max(deckItems.length, 5)} recommendations</Text>
+        <Text style={styles.countText}>Showing {deckItems.length} recommendations</Text>
       </View>
 
-      {activeDrag ? (
-        <View pointerEvents="none" style={styles.dragOverlay}>
-          <Animated.View
-            style={[
-              styles.dragCardContainer,
-              {
-                left: activeDrag.startRect.x,
-                top: activeDrag.startRect.y,
-                width: activeDrag.startRect.width,
-              },
-              dragOverlayStyle,
-            ]}>
-            <PlantCard plant={activeDrag.plant} enableLiftGesture={false} onPress={() => {}} />
+      {activeDrag && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <Animated.View style={[styles.dragCardContainer, { width: activeDrag.startRect.width }, dragOverlayStyle]}>
+            <PlantCard plant={activeDrag.plant} enableLiftGesture={false} onPress={() => { }} />
           </Animated.View>
-
-          {dropTarget ? (
-            <View style={[styles.dropMarker, { left: dropTarget.x - 3, top: dropTarget.y - 3 }]} />
-          ) : null}
         </View>
-      ) : null}
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
   cameraTapRegion: {
     justifyContent: 'flex-end',
@@ -421,19 +342,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     paddingBottom: 10,
   },
-  dragOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 9999,
-  },
   dragCardContainer: {
     position: 'absolute',
-  },
-  dropMarker: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(16, 185, 129, 0.7)',
+    top: 0,
+    left: 0,
   },
 });

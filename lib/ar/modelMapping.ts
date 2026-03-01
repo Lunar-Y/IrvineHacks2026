@@ -13,10 +13,10 @@
  *                                             → calendula_flower.glb (flower)
  *
  * SUPABASE STORAGE URLS (for runtime downloads if needed):
- *   https://<project>.supabase.co/storage/v1/object/public/<bucket>/maple_tree.glb
- *   https://<project>.supabase.co/storage/v1/object/public/<bucket>/old_tree.glb
- *   https://<project>.supabase.co/storage/v1/object/public/<bucket>/shrub.glb
- *   https://<project>.supabase.co/storage/v1/object/public/<bucket>/calendula_flower.glb
+ *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/maple_tree.glb
+ *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/old_tree.glb
+ *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/shrub.glb
+ *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/calendula_flower.glb
  */
 
 // Local asset requires (bundled with the app)
@@ -42,7 +42,7 @@ export function getModelForArchetype(archetype?: string): {
 
     // Large / old trees
     if (normalized.includes('large_tree') || normalized.includes('old_tree')) {
-        return { source: MODELS.old_tree, scale: [0.08, 0.08, 0.08], modelKey: 'old_tree' };
+        return { source: MODELS.old_tree, scale: [8, 8, 8], modelKey: 'old_tree' };
     }
 
     // Standard trees (default)
@@ -51,6 +51,7 @@ export function getModelForArchetype(archetype?: string): {
         normalized.includes('small_tree') ||
         normalized.includes('medium_tree')
     ) {
+        // Maple tree was already tuned to 0.06
         return { source: MODELS.maple_tree, scale: [0.06, 0.06, 0.06], modelKey: 'maple_tree' };
     }
 
@@ -61,7 +62,7 @@ export function getModelForArchetype(archetype?: string): {
         normalized.includes('vine') ||
         normalized.includes('climbing')
     ) {
-        return { source: MODELS.flower, scale: [0.04, 0.04, 0.04], modelKey: 'flower' };
+        return { source: MODELS.flower, scale: [0.4, 0.4, 0.4], modelKey: 'flower' };
     }
 
     // Shrubs, bushes, grasses, groundcover
@@ -73,7 +74,7 @@ export function getModelForArchetype(archetype?: string): {
         normalized.includes('evergreen') ||
         normalized.includes('ornamental')
     ) {
-        return { source: MODELS.shrub, scale: [0.05, 0.05, 0.05], modelKey: 'shrub' };
+        return { source: MODELS.shrub, scale: [0.8, 0.8, 0.8], modelKey: 'shrub' };
     }
 
     // Fallback: use height-based heuristic if no archetype matches

@@ -131,6 +131,9 @@ Each object in the array MUST follow this exact structure:
   "water_requirement": "low | medium | high",
   "is_toxic_to_pets": boolean,
   "care_tip": "One actionable care tip specific to this user's climate",
+  
+  // AR Classification: The LLM must classify the plant into one of the 4 available 
+  // 3D model categories so the app knows which GLB file to render in the real world.
   "model_archetype": "tree | large_tree | shrub | flower (choose the best 3D model category for this plant)"
 }`;
 

@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  Dimensions, 
-  Platform, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  PanResponder, 
-  Animated 
+import {
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  PanResponder,
+  Animated
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
@@ -16,7 +16,7 @@ import PlantCard from '@/components/plants/PlantCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 let viro: any = null;
-try { viro = require('@reactvision/react-viro'); } catch {}
+try { viro = require('@reactvision/react-viro'); } catch { }
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -25,26 +25,26 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // ─────────────────────────────────────────────────────────────────────
 function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
   if (!viro) return null;
-  const { 
-    ViroARScene, 
+  const {
+    ViroARScene,
     ViroAmbientLight,
-    ViroDirectionalLight, 
-    ViroBox, 
-    ViroNode, 
-    ViroCamera, 
-    ViroConstants, 
+    ViroDirectionalLight,
+    ViroBox,
+    ViroNode,
+    ViroCamera,
+    ViroTrackingStateConstants: ViroConstants,
     ViroText,
-    Viro3DObject 
+    Viro3DObject
   } = viro;
 
   const sceneRef = useRef<any>(null);
-  const [plants, setPlants] = useState<Array<{ 
-    id: number; 
-    plantIndex: number; 
+  const [plants, setPlants] = useState<Array<{
+    id: number;
+    plantIndex: number;
     pos: [number, number, number];
     asset?: any;
   }>>([]);
-  
+
   const [isTracking, setIsTracking] = useState(false);
   const hasPreview = isTracking;
 
@@ -62,7 +62,7 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       const orientation = await sceneRef.current.getCameraOrientationAsync();
       const pos = orientation.position;
       const forward = orientation.forward;
-      
+
       const dropPos: [number, number, number] = [
         pos[0] + forward[0] * 1.5,
         pos[1] + forward[1] * 1.5 - 0.5, // Drop slightly lower for models
@@ -82,7 +82,7 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
     <ViroARScene ref={sceneRef} onTrackingUpdated={onTrackingUpdated}>
       {/* Base ambient light so textures are visible */}
       <ViroAmbientLight color="#ffffff" intensity={300} />
-      
+
       {/* Directional light to cast some shadows and highlight 3D geometry */}
       <ViroDirectionalLight color="#ffffff" direction={[0, -1, -0.2]} intensity={800} />
 
@@ -90,7 +90,7 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       <ViroCamera position={[0, 0, 0]} active={true}>
         {hasPreview && (
           <ViroNode position={[0, -0.2, -1.3]}>
-             <ViroBox scale={[0.1, 0.01, 0.1]} opacity={0.3} materials={[]} />
+            <ViroBox scale={[0.1, 0.01, 0.1]} opacity={0.3} />
           </ViroNode>
         )}
       </ViroCamera>
@@ -110,8 +110,8 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
             /* Fallback generic box if no model asset exists for this recommendation */
             <ViroBox scale={[0.2, 0.2, 0.2]} />
           )}
-          
-          <ViroText 
+
+          <ViroText
             text={`Plant #${p.plantIndex}`}
             position={[0, 0.5, 0]}
             scale={[0.1, 0.1, 0.1]}
@@ -131,7 +131,7 @@ export default function ARNativeScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { recommendations } = useScanStore();
   const insets = useSafeAreaInsets();
-  
+
   if (!viro) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -201,7 +201,7 @@ export default function ARNativeScreen() {
           useNativeDriver: false,
           friction: 6,
         }).start();
-        
+
         setTimeout(() => setDraggedPlantIdx(null), 300);
       },
     })
@@ -249,31 +249,31 @@ export default function ARNativeScreen() {
 
       {/* ── Active Drag Clone Overlay ── */}
       {isDragging && draggedPlantIdx !== null && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.dragOverlay,
-            { 
+            {
               transform: [{ translateX: pan.x }, { translateY: pan.y }, { scale: 0.85 }],
               opacity: 0.9,
             }
           ]}
           pointerEvents="none"
         >
-          <PlantCard 
-            plant={recommendations[draggedPlantIdx]} 
-            onPress={() => {}} 
-            enableLiftGesture={false} 
+          <PlantCard
+            plant={recommendations[draggedPlantIdx]}
+            onPress={() => { }}
+            enableLiftGesture={false}
           />
         </Animated.View>
       )}
 
       {/* ── Bottom Deck UI ── */}
       <View style={[styles.deckContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.deckScrollContent}
-          snapToInterval={200 + 16} 
+          snapToInterval={200 + 16}
           decelerationRate="fast"
           onScroll={(e) => {
             // Update active plant based on scroll position
@@ -289,22 +289,22 @@ export default function ARNativeScreen() {
             const isActive = idx === activePlantIndex;
             return (
               <View key={idx} style={styles.cardWrapper}>
-                <View style={[styles.cardScaler, isActive && styles.activeCardScaler, 
-                  // Hide the real card in the deck if it's currently being dragged
-                  (isDragging && draggedPlantIdx === idx) && { opacity: 0.2 }
+                <View style={[styles.cardScaler, isActive && styles.activeCardScaler,
+                // Hide the real card in the deck if it's currently being dragged
+                (isDragging && draggedPlantIdx === idx) && { opacity: 0.2 }
                 ]}>
                   {/* The actual element the user touches to begin the drag */}
                   <View {...(isActive ? panResponder.panHandlers : {})}>
-                    <PlantCard 
-                      plant={plant} 
+                    <PlantCard
+                      plant={plant}
                       onPress={() => setActivePlantIndex(idx)}
-                      enableLiftGesture={false} 
+                      enableLiftGesture={false}
                     />
                   </View>
-                  
+
                   {isActive && isReady && !isDragging && (
-                    <TouchableOpacity 
-                      onPress={handleTapPlace} 
+                    <TouchableOpacity
+                      onPress={handleTapPlace}
                       style={styles.placeButton}
                       activeOpacity={0.8}
                     >
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   scene: { flex: 1 },
   arText: { fontSize: 18, color: '#ffffff', textAlign: 'center' },
-  
+
   topBar: {
     position: 'absolute', left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -355,11 +355,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)', paddingTop: 20,
   },
   deckScrollContent: { paddingHorizontal: Dimensions.get('window').width / 2 - 100, gap: 16 },
-  
+
   cardWrapper: { width: 200 },
   cardScaler: { opacity: 0.6, transform: [{ scale: 0.88 }], transition: 'all 0.2s' },
   activeCardScaler: { opacity: 1, transform: [{ scale: 1 }] },
-  
+
   placeButton: {
     position: 'absolute', bottom: -15, alignSelf: 'center',
     backgroundColor: '#22c55e', paddingHorizontal: 20, paddingVertical: 12,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 5, elevation: 8,
   },
   placeButtonText: { color: 'white', fontWeight: '800', fontSize: 14 },
-  
+
   fallbackTitle: { color: '#fca5a5', fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
   fallbackBody: { color: '#e5e7eb', fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 20 },
   button: { backgroundColor: 'rgba(100, 100, 100, 0.8)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },

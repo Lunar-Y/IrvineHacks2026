@@ -21,7 +21,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: true,
+        headerShown: pathname !== '/recommendations',
         tabBarStyle: pathname === '/recommendations' ? { position: 'absolute', bottom: 0 } : undefined,
       }}>
       <Tabs.Screen
