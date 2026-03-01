@@ -1,23 +1,30 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
-    Image,
     TouchableOpacity,
     SafeAreaView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useScanStore } from '@/lib/store/scanStore';
+import { usePlantsStore } from '@/lib/store/plantsStore';
 
 export default function PlantDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { recommendations } = useScanStore();
+    const { recommendations, currentScan } = useScanStore();
+    const { savedPlants, addPlant, removePlant } = usePlantsStore();
 
     const index = parseInt(id ?? '0', 10);
     const plant = recommendations[index];
+
+    const isSaved = useMemo(() => {
+        if (!plant) return false;
+        return savedPlants.some(p => p.plant_scientific_name === plant.scientific_name);
+    }, [savedPlants, plant]);
 
     if (!plant) {
         return (
@@ -30,14 +37,39 @@ export default function PlantDetailScreen() {
         );
     }
 
+    const toggleSave = () => {
+        if (isSaved) {
+            const savedItem = savedPlants.find(p => p.plant_scientific_name === plant.scientific_name);
+            if (savedItem) removePlant(savedItem.id);
+        } else {
+            addPlant({
+                id: Math.random().toString(36).substring(7), // Temporary ID generator
+                session_id: currentScan.id || 'local',
+                plant_common_name: plant.common_name,
+                plant_scientific_name: plant.scientific_name,
+                environmental_profile: currentScan.assembledProfile,
+                recommendation_data: plant,
+                saved_at: new Date().toISOString(),
+            });
+        }
+    };
+
     return (
         <View style={styles.container}>
             {/* Hero image */}
             {plant.image_url ? (
                 <Image
-                    source={{ uri: plant.image_url }}
+                    source={{ 
+                        uri: plant.image_url,
+                        headers: { 'User-Agent': 'LawnLens/1.0 (https://lawnlens.app; contact@lawnlens.app)' }
+                    }}
                     style={styles.heroImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    onLoadStart={() => console.log(`[DetailDebug] Starting load: ${plant.common_name} - ${plant.image_url}`)}
+                    onLoad={() => console.log(`[DetailDebug] Successfully loaded: ${plant.common_name}`)}
+                    onError={(error) => {
+                        console.error(`[DetailDebug] Error loading ${plant.common_name}:`, error.error);
+                    }}
                 />
             ) : (
                 <View style={[styles.heroImage, styles.heroPlaceholder]}>
@@ -78,6 +110,16 @@ export default function PlantDetailScreen() {
                         <Text style={styles.bodyText}>💡 {plant.care_tip}</Text>
                     </View>
                 </View>
+
+                {/* Action button */}
+                <TouchableOpacity 
+                    style={[styles.saveButton, isSaved && styles.savedButton]} 
+                    onPress={toggleSave}
+                >
+                    <Text style={[styles.saveButtonText, isSaved && styles.savedButtonText]}>
+                        {isSaved ? '✓ Saved to Yard' : 'Save to My Collection'}
+                    </Text>
+                </TouchableOpacity>
             </ScrollView>
         </View>
     );
@@ -170,4 +212,25 @@ const styles = StyleSheet.create({
     },
     errorText: { fontSize: 18, color: '#374151', marginBottom: 16 },
     backLink: { color: '#16a34a', fontWeight: '700', fontSize: 16 },
+    saveButton: {
+        backgroundColor: '#16a34a',
+        height: 56,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+    },
+    savedButton: {
+        backgroundColor: '#f0fdf4',
+        borderWidth: 1,
+        borderColor: '#bbf7d0',
+    },
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    savedButtonText: {
+        color: '#166534',
+    },
 });
