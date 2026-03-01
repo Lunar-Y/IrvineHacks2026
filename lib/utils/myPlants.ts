@@ -21,6 +21,17 @@ export interface GroupingPlantRecommendation {
   water_usage_liters_per_week?: number;
   image_url?: string;
   care_difficulty?: 'easy' | 'moderate' | 'hard';
+  environmental_data?: {
+    carbon_sequestration_kg_per_year: number;
+    water_usage_liters_per_week: number;
+    vs_lawn_water_savings_percent: number;
+    native_species: boolean;
+    pollinator_support_score: number;
+    biodiversity_score: number;
+    urban_heat_reduction_score: number;
+    soil_erosion_prevention: boolean;
+    nitrogen_fixing: boolean;
+  };
 }
 
 export interface GroupedPlacedPlant {
@@ -65,6 +76,7 @@ function buildPlantSnapshot(
     model_archetype: recommendation?.model_archetype,
     water_usage_liters_per_week: recommendation?.water_usage_liters_per_week,
     care_difficulty: recommendation?.care_difficulty,
+    environmental_data: recommendation?.environmental_data,
   };
 }
 

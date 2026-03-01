@@ -33,7 +33,11 @@ export default function SavedPlantCard({
     <View style={styles.card}>
       <View style={styles.hero}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
+          <Image
+            source={typeof imageUrl === 'string' ? { uri: imageUrl } : imageUrl}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
         ) : (
           <View style={[styles.heroImage, styles.heroPlaceholder]}>
             <Text style={styles.placeholderEmoji}>🌿</Text>

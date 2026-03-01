@@ -48,7 +48,7 @@ export default function SavedPlantsGrid() {
 const styles = StyleSheet.create({
   listContent: {
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 16,
     gap: 16,
   },
   columnWrapper: {

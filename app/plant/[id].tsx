@@ -46,7 +46,7 @@ export default function PlantDetailScreen() {
             {/* Hero image */}
             {plant.image_url ? (
                 <Image
-                    source={{ uri: plant.image_url }}
+                    source={typeof plant.image_url === 'string' ? { uri: plant.image_url } : plant.image_url}
                     style={styles.heroImage}
                     resizeMode="cover"
                 />

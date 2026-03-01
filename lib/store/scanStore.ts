@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { MOCK_RECOMMENDATIONS } from '@/lib/mock/mockRecommendations';
 
 export interface EnvironmentalProfile {
   coordinates: { lat: number; lng: number };
@@ -28,6 +29,17 @@ export interface PlantRecommendation {
   water_usage_liters_per_week?: number;
   image_url?: string;
   care_difficulty?: 'easy' | 'moderate' | 'hard';
+  environmental_data?: {
+    carbon_sequestration_kg_per_year: number;
+    water_usage_liters_per_week: number;
+    vs_lawn_water_savings_percent: number;
+    native_species: boolean;
+    pollinator_support_score: number;
+    biodiversity_score: number;
+    urban_heat_reduction_score: number;
+    soil_erosion_prevention: boolean;
+    nitrogen_fixing: boolean;
+  };
 }
 
 export type ScanStatus = 'idle' | 'scanning' | 'analyzing' | 'recommending' | 'complete' | 'error';
@@ -68,6 +80,8 @@ interface ScanStore {
   setAssembledProfile: (profile: AssembledProfile | null) => void;
   activeRecommendationIndex: number | null;
   setActiveRecommendationIndex: (index: number | null) => void;
+  lastHorizontalIndex: number;
+  setLastHorizontalIndex: (index: number) => void;
   getActiveRecommendation: () => PlantRecommendation | null;
   resetScan: () => void;
 
@@ -87,10 +101,12 @@ export const useScanStore = create<ScanStore>((set, get) => ({
   },
   setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
+  setRecommendations: (_recs) => set((state) => ({ currentScan: { ...state.currentScan, recommendations: MOCK_RECOMMENDATIONS } })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
   activeRecommendationIndex: null,
   setActiveRecommendationIndex: (index) => set({ activeRecommendationIndex: index }),
+  lastHorizontalIndex: 0,
+  setLastHorizontalIndex: (index) => set({ lastHorizontalIndex: index }),
   getActiveRecommendation: () => {
     const state = get();
     const index = state.activeRecommendationIndex;
@@ -109,6 +125,7 @@ export const useScanStore = create<ScanStore>((set, get) => ({
       assembledProfile: null,
     },
     activeRecommendationIndex: null,
+    lastHorizontalIndex: 0,
   }),
 
   placedPlantCounts: {},

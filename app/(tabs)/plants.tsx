@@ -98,6 +98,5 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flex: 1,
-    paddingBottom: 100, // Safe Area + Tab Bar Space
   },
 });

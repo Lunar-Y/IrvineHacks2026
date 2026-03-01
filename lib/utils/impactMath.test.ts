@@ -1,6 +1,6 @@
 import { calculateImpact } from './impactMath';
-import { PlantRecommendation } from '../../types/plant';
 import { MOCK_RECOMMENDATIONS } from '../../store/plantsStore';
+import { formatCount, formatHeatIndex, formatKg, formatLiters } from './impactFormat';
 
 describe('impactMath', () => {
     it('correctly calculates impact for empty array', () => {
@@ -14,37 +14,39 @@ describe('impactMath', () => {
         expect(result.nativeCount).toBe(0);
         expect(result.erosionPreventionCount).toBe(0);
         expect(result.nitrogenFixingCount).toBe(0);
+        expect(result.waterSavingsVsGrassLiters).toBe(0);
+        expect(result.heatReductionIndex).toBe(0);
+        expect(result.overallScore).toBe(0);
+        expect(result.scoreProfile).toBe('drought_warrior');
+        expect(result.scoreBreakdown).toEqual([]);
+        expect(result.scoreVersion).toBe('v1');
     });
 
     it('correctly aggregates metrics for mock data', () => {
-        const result = calculateImpact(MOCK_RECOMMENDATIONS);
+        const result = calculateImpact(MOCK_RECOMMENDATIONS, { forcedProfile: 'drought_warrior' });
 
-        // From mock data:
-        // Carbon: 0.5 + 1.2 + 2.5 = 4.2
-        expect(result.totalCarbonKg).toBe(4.2);
-
-        // Water liters: 2 + 1 + 4 = 7
-        expect(result.totalWaterLiters).toBe(7);
-
-        // Average Savings: (85 + 95 + 60) / 3 = 240 / 3 = 80
-        expect(result.averageWaterSavingsPercent).toBe(80);
-
-        // Pollinator: (3 + 1 + 3) / 3 = 2.333... -> 2.3
-        expect(result.pollinatorScore).toBe(2.3);
-
-        // Biodiversity: (2 + 2 + 3) / 3 = 2.333... -> 2.3
-        expect(result.biodiversityScore).toBe(2.3);
-
-        // Heat: (1 + 1 + 2) / 3 = 1.333... -> 1.3
-        expect(result.urbanHeatReduction).toBe(1.3);
-
-        // Natives: 1 (Blue Grama) 
-        expect(result.nativeCount).toBe(1);
-
-        // Erosion: 2 (Thyme, Blue Grama)
-        expect(result.erosionPreventionCount).toBe(2);
-
-        // Nitrogen: 0
+        expect(result.totalCarbonKg).toBe(9.9);
+        expect(result.totalWaterLiters).toBe(15);
+        expect(result.averageWaterSavingsPercent).toBe(78);
+        expect(result.pollinatorScore).toBe(2.2);
+        expect(result.biodiversityScore).toBe(2.5);
+        expect(result.urbanHeatReduction).toBe(1.7);
+        expect(result.nativeCount).toBe(4);
+        expect(result.erosionPreventionCount).toBe(5);
         expect(result.nitrogenFixingCount).toBe(0);
+        expect(result.waterSavingsVsGrassLiters).toBe(2455);
+        expect(result.heatReductionIndex).toBe(4.5);
+        expect(result.overallScore).toBeGreaterThanOrEqual(0);
+        expect(result.overallScore).toBeLessThanOrEqual(100);
+        expect(result.scoreProfile).toBe('drought_warrior');
+        expect(result.scoreBreakdown.length).toBe(3);
+        expect(result.scoreVersion).toBe('v1');
+    });
+
+    it('formats key display metrics for dashboard cards', () => {
+        expect(formatKg(1234.6)).toBe('1,235 kg');
+        expect(formatLiters(2455)).toBe('2,455 L');
+        expect(formatCount(4)).toBe('4');
+        expect(formatHeatIndex(4.5)).toBe('-4.5°F');
     });
 });

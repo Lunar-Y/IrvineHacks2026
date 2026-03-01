@@ -55,10 +55,11 @@ function dedupeRecommendations(plants: PlantRecommendation[]): PlantRecommendati
  */
 export function buildDummyDeck(
   minCount: number = 5,
-  seedPlants: PlantRecommendation[] = MOCK_RECOMMENDATIONS
+  _seedPlants: PlantRecommendation[] = MOCK_RECOMMENDATIONS
 ): RecommendationDeckItem[] {
   const safeMinCount = Math.max(1, Math.floor(minCount));
-  const sourcePlants = seedPlants.length > 0 ? seedPlants : MOCK_RECOMMENDATIONS;
+  // HARDCODED FOR DEMO: Always use the MOCK_RECOMMENDATIONS list
+  const sourcePlants = MOCK_RECOMMENDATIONS;
   const dedupedPlants = dedupeRecommendations(sourcePlants);
 
   if (dedupedPlants.length === 0) return [];

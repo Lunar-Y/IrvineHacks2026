@@ -67,9 +67,9 @@ export default function RecommendationsOverlay({
 }: RecommendationsOverlayProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currentScan, resetScan } = useScanStore();
+  const { currentScan, resetScan, lastHorizontalIndex, setLastHorizontalIndex } = useScanStore();
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(lastHorizontalIndex);
   const [panelState, setPanelState] = useState<PanelState>('expanded');
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [isReturningToScan, setIsReturningToScan] = useState(false);
@@ -102,7 +102,8 @@ export default function RecommendationsOverlay({
      * FUTURE_INTEGRATION: Track deck impressions and detail-open CTR.
      */
     setDeckItems(buildDummyDeck(5, recommendations));
-    setCurrentIndex(0);
+    // When syncing with real recommendations, reset or set to initial.
+    if (!lastHorizontalIndex) setCurrentIndex(0);
   }, [recommendations]);
 
   const zoneLabel = useMemo(() => {
@@ -227,8 +228,9 @@ export default function RecommendationsOverlay({
       const index = Math.round(event.nativeEvent.contentOffset.x / snapInterval);
       const boundedIndex = Math.max(0, Math.min(index, Math.max(deckItems.length - 1, 0)));
       setCurrentIndex(boundedIndex);
+      setLastHorizontalIndex(boundedIndex);
     },
-    [deckItems.length, snapInterval]
+    [deckItems.length, snapInterval, setLastHorizontalIndex]
   );
 
   const handleScrollToIndexFailed = useCallback(
@@ -308,6 +310,7 @@ export default function RecommendationsOverlay({
             ref={flatListRef}
             data={deckItems}
             keyExtractor={(item) => item.id}
+            initialScrollIndex={lastHorizontalIndex}
             horizontal
             scrollEnabled
             showsHorizontalScrollIndicator={false}
