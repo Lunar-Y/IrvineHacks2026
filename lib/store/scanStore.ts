@@ -30,18 +30,29 @@ export interface PlantRecommendation {
   care_difficulty?: 'easy' | 'moderate' | 'hard';
 }
 
+export type ScanStatus = 'idle' | 'scanning' | 'analyzing' | 'recommending' | 'complete' | 'error';
+
+export interface AssembledProfile {
+  coordinates: { lat: number; lng: number };
+  hardiness_zone?: string;
+  estimated_sun_exposure?: string;
+  estimated_microclimate?: string;
+  soil?: { soil_texture?: string; drainage?: string };
+  source?: string;
+}
+
 interface ScanStore {
   currentScan: {
     id: string | null;
     imageUri: string | null;
-    status: 'idle' | 'scanning' | 'analyzing' | 'recommending' | 'complete' | 'error';
-    assembledProfile: Record<string, unknown> | null;
+    status: ScanStatus;
+    recommendations: PlantRecommendation[];
+    assembledProfile: AssembledProfile | null;
   };
-  recommendations: PlantRecommendation[];
-  setScanStatus: (status: ScanStore['currentScan']['status']) => void;
+  setScanStatus: (status: ScanStatus) => void;
   setScanImage: (uri: string) => void;
-  setAssembledProfile: (profile: Record<string, unknown>) => void;
-  setRecommendations: (plants: PlantRecommendation[]) => void;
+  setRecommendations: (recs: PlantRecommendation[]) => void;
+  setAssembledProfile: (profile: AssembledProfile | null) => void;
   resetScan: () => void;
 }
 
@@ -50,19 +61,20 @@ export const useScanStore = create<ScanStore>((set) => ({
     id: null,
     imageUri: null,
     status: 'idle',
+    recommendations: [],
     assembledProfile: null,
   },
-  recommendations: [],
-  setScanStatus: (status) =>
-    set((state) => ({ currentScan: { ...state.currentScan, status } })),
-  setScanImage: (uri) =>
-    set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setAssembledProfile: (profile) =>
-    set((state) => ({ currentScan: { ...state.currentScan, assembledProfile: profile } })),
-  setRecommendations: (plants) => set({ recommendations: plants }),
-  resetScan: () =>
-    set({
-      currentScan: { id: null, imageUri: null, status: 'idle', assembledProfile: null },
+  setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
+  setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
+  setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
+  setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
+  resetScan: () => set({
+    currentScan: {
+      id: null,
+      imageUri: null,
+      status: 'idle',
       recommendations: [],
-    }),
+      assembledProfile: null,
+    },
+  }),
 }));

@@ -51,7 +51,8 @@ interface ActiveDragState {
 export default function RecommendationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { recommendations, currentScan } = useScanStore();
+  const { currentScan } = useScanStore();
+  const recommendations = currentScan.recommendations;
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeDrag, setActiveDrag] = useState<ActiveDragState | null>(null);
@@ -66,19 +67,6 @@ export default function RecommendationsScreen() {
   const dragOpacity = useSharedValue(1);
 
   useEffect(() => {
-    /**
-     * CURRENT DUMMY BEHAVIOR:
-     * - This screen consumes dummy-backed normalized recommendations.
-     *
-     * FUTURE API WIRING STEPS:
-     * FUTURE_INTEGRATION: Swap this with validated backend payload mapping.
-     *
-     * VALIDATION/BACKFILL EXPECTATIONS:
-     * FUTURE_INTEGRATION: Keep min-count and de-dupe in the normalization layer.
-     *
-     * FAILURE HANDLING AND ANALYTICS HOOKS TO ADD LATER:
-     * FUTURE_INTEGRATION: Track deck impressions and detail-open CTR.
-     */
     setDeckItems(buildDummyDeck(5, recommendations));
     setCurrentIndex(0);
   }, [recommendations]);
@@ -86,7 +74,7 @@ export default function RecommendationsScreen() {
   const zoneLabel = useMemo(() => {
     const profile = currentScan.assembledProfile;
     if (!profile || typeof profile !== 'object') return 'Zone 9b';
-    const rawZone = (profile as Record<string, unknown>).hardiness_zone;
+    const rawZone = profile.hardiness_zone;
     if (typeof rawZone === 'number' || typeof rawZone === 'string') return `Zone ${rawZone}`;
     return 'Zone 9b';
   }, [currentScan.assembledProfile]);

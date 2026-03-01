@@ -42,24 +42,8 @@ function dedupeRecommendations(plants: PlantRecommendation[]): PlantRecommendati
 }
 
 /**
- * CURRENT DUMMY BEHAVIOR:
- * - This builder is the single source of truth for recommendation deck fixtures.
- * - It guarantees deterministic ordering, deterministic IDs, and a minimum card count.
- *
- * FUTURE API WIRING STEPS:
- * FUTURE_INTEGRATION: Replace the `seedPlants` input with the response from an async
- * FUTURE_INTEGRATION: `fetchRecommendationsFromEdge(profile, preferences)` adapter.
- * FUTURE_INTEGRATION: Keep this normalization layer in place so UI rendering remains
- * FUTURE_INTEGRATION: stable regardless of backend data quality.
- *
- * VALIDATION/BACKFILL EXPECTATIONS:
- * FUTURE_INTEGRATION: Validate each API item shape before mapping into deck items.
- * FUTURE_INTEGRATION: Drop malformed records, then backfill from a trusted fallback set
- * FUTURE_INTEGRATION: until `minCount` is reached.
- *
- * FAILURE HANDLING AND ANALYTICS HOOKS TO ADD LATER:
- * FUTURE_INTEGRATION: Emit telemetry when malformed items are dropped.
- * FUTURE_INTEGRATION: Emit telemetry when backfill path is used.
+ * Builds a recommendation deck with deterministic ordering, IDs, and a minimum card count.
+ * Uses seedPlants (or existing recommendations) when provided, otherwise MOCK_RECOMMENDATIONS.
  */
 export function buildDummyDeck(
   minCount: number = 5,
@@ -78,7 +62,6 @@ export function buildDummyDeck(
     rank: index + 1,
   }));
 
-  // The fixture set is looped only when needed to satisfy the minimum card count.
   const deck = [...initialDeck];
   let loopIndex = 0;
 
