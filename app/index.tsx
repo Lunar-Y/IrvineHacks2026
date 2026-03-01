@@ -36,7 +36,7 @@ export default function Index() {
     // For now, bypass onboarding and go straight to your tabs:
     return (
         <>
-            <Redirect href="/(tabs)" />
+            <Redirect href="/scan" />
             <View style={{ flex: 1, backgroundColor: '#fff' }} />
         </>
     );
