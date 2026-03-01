@@ -60,7 +60,8 @@ interface RecommendationsOverlayProps {
 export default function RecommendationsOverlay({ onRequestRescan }: RecommendationsOverlayProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { recommendations, currentScan, resetScan } = useScanStore();
+  const { currentScan, resetScan } = useScanStore();
+  const recommendations = currentScan.recommendations;
   const [deckItems, setDeckItems] = useState<RecommendationDeckItem[]>(() => buildDummyDeck(5));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeDrag, setActiveDrag] = useState<ActiveDragState | null>(null);
@@ -97,8 +98,8 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
 
   const zoneLabel = useMemo(() => {
     const profile = currentScan.assembledProfile;
-    if (!profile || typeof profile !== 'object') return 'Zone 9b';
-    const rawZone = (profile as Record<string, unknown>).hardiness_zone;
+    if (!profile) return 'Zone 9b';
+    const rawZone = profile.hardiness_zone;
     if (typeof rawZone === 'number' || typeof rawZone === 'string') return `Zone ${rawZone}`;
     return 'Zone 9b';
   }, [currentScan.assembledProfile]);
@@ -419,7 +420,7 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
                     onLiftStateChange={setIsLiftActive}
                     onPress={() => {
                       const matchingIndex = recommendations.findIndex(
-                        (plant) =>
+                        (plant: any) =>
                           plant.common_name === item.common_name &&
                           plant.scientific_name === item.scientific_name
                       );
@@ -449,7 +450,7 @@ export default function RecommendationsOverlay({ onRequestRescan }: Recommendati
               },
               dragOverlayStyle,
             ]}>
-            <PlantCard plant={activeDrag.plant} enableLiftGesture={false} onPress={() => {}} />
+            <PlantCard plant={activeDrag.plant} enableLiftGesture={false} onPress={() => { }} />
           </Animated.View>
 
           {dropTarget ? (

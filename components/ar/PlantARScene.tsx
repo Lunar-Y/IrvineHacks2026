@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image } from 'react-native';
-import { ViroARSceneNavigator, ViroARScene, ViroText, Viro3DObject, ViroAmbientLight, ViroSpotLight, ViroNode, ViroQuad } from '@viro-community/react-viro';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import { ViroARSceneNavigator, ViroARScene, ViroBox, ViroAmbientLight, ViroSpotLight, ViroNode, ViroQuad } from '@reactvision/react-viro';
 
 const PlantScene = () => {
   const [plants, setPlants] = useState<any[]>([]);
@@ -10,10 +10,9 @@ const PlantScene = () => {
     const newPlant = {
       position: anchor.position,
       rotation: [0, 0, 0],
-      scale: [0.2, 0.2, 0.2], // 1:1 scale logic would go here
-      source: require('@/assets/models/small_tree.gltf'), // Placeholder
+      scale: [0.2, 0.2, 0.2],
     };
-    setPlants([...plants, newPlant]);
+    setPlants((prev) => [...prev, newPlant]);
   };
 
   return (
@@ -30,11 +29,7 @@ const PlantScene = () => {
 
       {plants.map((plant, index) => (
         <ViroNode key={index} position={plant.position}>
-          <Viro3DObject
-            source={plant.source}
-            type="GLTF"
-            scale={plant.scale}
-          />
+          <ViroBox scale={plant.scale} />
           <ViroQuad
             rotation={[-90, 0, 0]}
             scale={[1, 1, 1]}
