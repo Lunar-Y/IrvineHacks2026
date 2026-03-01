@@ -124,6 +124,9 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
 
   useEffect(() => {
     arSceneNavigator?.viroAppProps?.setPlaceFn?.(() => handlePlace);
+    if (arSceneNavigator?.viroAppProps?.onPreviewValid) {
+      arSceneNavigator.viroAppProps.onPreviewValid(previewValid && previewPos !== null);
+    }
   }, [isTracking, previewPos, previewValid, arSceneNavigator?.viroAppProps?.selectedArchetype]);
 
   // Get current preview model from parent
@@ -182,7 +185,9 @@ export default function ARNativeScreen() {
   const selectedArchetype = activePlant?.model_archetype || 'tree';
 
   const isFocused = useIsFocused();
+  const [mountViro, setMountViro] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [canPlace, setCanPlace] = useState(false);
   const [plantCount, setPlantCount] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -213,9 +218,22 @@ export default function ARNativeScreen() {
     setTimeout(() => setHint(null), 1500);
   };
 
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    if (isFocused) {
+      // 300ms delay to ensure previous screens unbind from the camera hardware cleanly
+      t = setTimeout(() => setMountViro(true), 300);
+    } else {
+      setMountViro(false);
+      setIsReady(false);
+      setCanPlace(false);
+    }
+    return () => clearTimeout(t);
+  }, [isFocused]);
+
   return (
     <View style={styles.container}>
-      {isFocused ? (
+      {mountViro ? (
         <ViroARSceneNavigator
           autofocus
           initialScene={{ scene: SinglePlantScene }}
@@ -225,6 +243,7 @@ export default function ARNativeScreen() {
             onPlaced,
             selectedArchetype,
             _onTrackingReady: setIsReady,
+            onPreviewValid: setCanPlace,
           }}
           style={styles.scene}
         />
@@ -242,11 +261,11 @@ export default function ARNativeScreen() {
           <Text style={styles.buttonText}>Back</Text>
         </TouchableOpacity>
 
-        <View style={styles.statusPill}>
-          <Text style={styles.statusText}>
-            {!isReady ? "Look around slowly..." : `${plantCount} placed`}
-          </Text>
-        </View>
+        {plantCount > 0 ? (
+          <View style={styles.statusPill}>
+            <Text style={styles.statusText}>{`${plantCount} placed`}</Text>
+          </View>
+        ) : <View />}
       </View>
 
       {/* ── Hint HUD ── */}
@@ -261,9 +280,9 @@ export default function ARNativeScreen() {
       {/* ── Bottom Controls ── */}
       <View style={[styles.bottomControls, { paddingBottom: Math.max(insets.bottom, 20) }]} pointerEvents="box-none">
         <TouchableOpacity
-          style={[styles.placeButton, (!isReady) && styles.placeButtonDisabled]}
+          style={[styles.placeButton, (!isReady || !canPlace) && styles.placeButtonDisabled]}
           onPress={() => placeFn?.()}
-          disabled={!isReady}
+          disabled={!isReady || !canPlace}
         >
           <FontAwesome name="plus" size={20} color="#fff" style={{ marginRight: 8 }} />
           <Text style={styles.placeButtonText}>Place Here</Text>
@@ -304,13 +323,13 @@ const styles = StyleSheet.create({
   },
   placeButton: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#2F6B4F', paddingHorizontal: 32, paddingVertical: 18,
+    backgroundColor: '#10B981', paddingHorizontal: 32, paddingVertical: 18,
     borderRadius: 999, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 5, elevation: 8,
     borderWidth: 2, borderColor: '#fff'
   },
   placeButtonDisabled: {
-    backgroundColor: '#6b7280',
+    backgroundColor: '#4b5563',
     borderColor: '#9ca3af',
   },
   placeButtonText: { color: 'white', fontWeight: '800', fontSize: 18 },
