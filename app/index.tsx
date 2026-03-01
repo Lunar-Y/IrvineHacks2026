@@ -33,7 +33,8 @@ export default function Index() {
     }
     */
 
-    // For now, bypass onboarding and go straight to your tabs:
+    // [DEMO_HARDCODED]: Bypass onboarding and go straight to the scan view 
+    // for competition presentation speed.
     return (
         <>
             <Redirect href="/scan" />

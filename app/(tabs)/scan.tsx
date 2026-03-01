@@ -75,7 +75,8 @@ export default function ScanScreen() {
   const handleScan = async () => {
     if (!cameraRef.current || captureInProgress) return;
 
-    // RESUME LOGIC: If we already have recommendations, just show them.
+    // [DEMO_HARDCODED]: Resume results instantly if we already have mock 
+    // recommendations to speed up the presentation flow.
     if (currentScan.recommendations.length > 0) {
       setShowRecommendationsOverlay(true);
       return;

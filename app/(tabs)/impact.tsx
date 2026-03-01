@@ -31,6 +31,8 @@ export default function ImpactScreen() {
   const groupedPlants = groupPlacedPlantsByRecommendation(placedItems, recommendations);
 
   const metrics = useMemo(() => {
+    // [DEMO_HARDCODED]: Crunching real math on curated mock data for 
+    // a perfect statistical "wow factor" in the impact dashboard.
     const plantsToCalculate = groupedPlants.flatMap((group: GroupedPlacedPlant) =>
       Array(group.placedCount).fill(group.plant)
     );

@@ -58,7 +58,8 @@ export function buildDummyDeck(
   _seedPlants: PlantRecommendation[] = MOCK_RECOMMENDATIONS
 ): RecommendationDeckItem[] {
   const safeMinCount = Math.max(1, Math.floor(minCount));
-  // HARDCODED FOR DEMO: Always use the MOCK_RECOMMENDATIONS list
+  // [DEMO_HARDCODED]: Always use MOCK_RECOMMENDATIONS for the demo to ensure
+  // predictability and handle specific glb model requirements.
   const sourcePlants = MOCK_RECOMMENDATIONS;
   const dedupedPlants = dedupeRecommendations(sourcePlants);
 

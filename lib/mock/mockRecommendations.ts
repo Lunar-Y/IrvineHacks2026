@@ -1,10 +1,6 @@
 /**
- * ⚠️  FILLER / MOCK FILE — REMOVE FOR FINAL PRODUCT
- *
- * These hardcoded plant recommendations are used as fallback data when the
- * get-recommendations Edge Function is unavailable. In the final product,
- * this file should either be deleted entirely or kept ONLY as a last-resort
- * offline fallback. All real data should come from the Supabase RAG pipeline.
+ * [DEMO_HARDCODED]: This entire file contains static assets and metadata 
+ * specifically curated for the IrvineHacks demo.
  */
 import { PlantRecommendation } from '@/lib/store/scanStore';
 

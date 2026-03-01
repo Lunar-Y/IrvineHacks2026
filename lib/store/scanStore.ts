@@ -101,7 +101,13 @@ export const useScanStore = create<ScanStore>((set, get) => ({
   },
   setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setRecommendations: (_recs) => set((state) => ({ currentScan: { ...state.currentScan, recommendations: MOCK_RECOMMENDATIONS } })),
+  setRecommendations: (_recs) => set((state) => ({
+    currentScan: {
+      ...state.currentScan,
+      // [DEMO_HARDCODED]: Force mock plants even if scan fails or returns different data
+      recommendations: MOCK_RECOMMENDATIONS
+    }
+  })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
   activeRecommendationIndex: null,
   setActiveRecommendationIndex: (index) => set({ activeRecommendationIndex: index }),
