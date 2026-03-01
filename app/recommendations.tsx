@@ -32,7 +32,7 @@ import { buildDummyDeck, RecommendationDeckItem } from '@/lib/recommendations/de
 import { useScanStore } from '@/lib/store/scanStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const TOP_REGION_RATIO = 0.32; // Reduced from 0.40 to provide more room for 340px cards
+const TOP_REGION_RATIO = 0.48;
 const TAB_BAR_VISUAL_HEIGHT = 49;
 const PANEL_TO_TAB_GAP = 0;
 const CARD_WIDTH_RATIO = 0.66;
