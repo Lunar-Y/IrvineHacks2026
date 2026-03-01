@@ -1,11 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator, Platform, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
+
+// New Components
+import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
+import ScanningAnimation from '@/components/camera/ScanningAnimation';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
@@ -19,24 +30,33 @@ function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantReco
   return plants.map(({ id, source, rank, ...plant }) => plant);
 }
 
-// New Components
-import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
-import ScanningAnimation from '@/components/camera/ScanningAnimation';
-
 export default function ScanScreen() {
+  const router = useRouter();
+
   const [permission, requestPermission] = useCameraPermissions();
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+
   const [isLawnDetected, setIsLawnDetected] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
+
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
-  const router = useRouter();
 
-  // On web, after the user grants camera permission for the first time,
-  // automatically refresh the page ONCE so that the camera stream can be
-  // initialized correctly. We persist a flag in localStorage so this does
-  // not keep happening on every subsequent load.
+  // Try to read existing location permission on mount (no prompt yet)
+  useEffect(() => {
+    (async () => {
+      try {
+        const existing = await Location.getForegroundPermissionsAsync();
+        if (existing?.status) setLocationPermission(existing.status === 'granted');
+      } catch {
+        setLocationPermission(null);
+      }
+    })();
+  }, []);
+
+  // On web, after camera permission is granted for the first time,
+  // refresh once so camera stream initializes correctly.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (!permission?.granted) return;
@@ -50,82 +70,6 @@ export default function ScanScreen() {
     window.location.reload();
   }, [permission?.granted]);
 
-  const handleScan = async () => {
-    if (!cameraRef.current) return;
-
-    try {
-      setScanStatus('scanning');
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
-      if (!photo?.base64) throw new Error('Failed to capture frame');
-
-      setScanStatus('analyzing');
-      const location = await Location.getCurrentPositionAsync({});
-
-      const [visionResponse, profileResponse] = await Promise.all([
-        supabase.functions.invoke('analyze-frame', { body: { image: photo.base64 } }),
-        supabase.functions.invoke('assemble-profile', { body: { lat: location.coords.latitude, lng: location.coords.longitude } })
-      ]);
-
-      if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
-      if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
-
-      // Parse AI Vision Result
-      let visionData;
-      try {
-        visionData = typeof visionResponse.data === 'string'
-          ? JSON.parse(visionResponse.data)
-          : visionResponse.data;
-      } catch (e) {
-        throw new Error('Vision API: Invalid JSON response');
-      }
-
-      const coverage = visionData.soil_analysis?.coverage_percent || 0;
-      const aiConfidence = visionData.confidence || 0.85;
-      const isValidLawn = visionData.is_lawn === true || coverage > 40;
-
-      setConfidence(aiConfidence);
-      setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
-      setIsLawnDetected(isValidLawn);
-
-      // Fallback logic from Jay branch: if valid lawn, generate dummy deck for UI flow testing
-      if (isValidLawn) {
-        setScanStatus('recommending');
-        await delay(450);
-        const dummyDeck = buildDummyDeck(5);
-        const plants = stripDeckMetadata(dummyDeck);
-        setRecommendations(plants);
-
-        // Simulate assembled profile
-        setAssembledProfile({
-          coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
-          hardiness_zone: '9b',
-          estimated_sun_exposure: 'full_sun',
-          estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
-          soil: { soil_texture: 'loamy', drainage: 'well' },
-          source: 'dummy_scan_profile',
-        });
-
-        // Navigate directly to recommendations as intended in the offline flow
-        router.push('/recommendations');
-      }
-      setScanStatus('complete');
-    } catch (error: any) {
-      console.error('Scan failed:', error);
-      useScanStore.getState().setScanImage(error.message || 'Unknown API Error');
-      setScanStatus('error');
-    }
-  };
-
-  // 1. Handle the loading state first to prevent "null" errors
-  if (!permission) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-      </View>
-    );
-  }
-
-  // 2. Consolidate logic into a single sequential requester
   const handleRequestPermissions = async () => {
     const cameraResult = await requestPermission();
     if (cameraResult.granted) {
@@ -134,7 +78,86 @@ export default function ScanScreen() {
     }
   };
 
-  // 3. Use optional chaining (?.) to safely check granted status
+  const handleScan = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      setScanStatus('scanning');
+
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
+      if (!photo?.base64) throw new Error('Failed to capture frame');
+
+      setScanStatus('analyzing');
+
+      const location = await Location.getCurrentPositionAsync({});
+      const lat = location.coords.latitude;
+      const lng = location.coords.longitude;
+
+      const [visionResponse, profileResponse] = await Promise.all([
+        supabase.functions.invoke('analyze-frame', { body: { image: photo.base64 } }),
+        supabase.functions.invoke('assemble-profile', { body: { lat, lng } }),
+      ]);
+
+      if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
+      if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
+
+      // Parse Vision Result
+      let visionData: any;
+      try {
+        visionData =
+          typeof visionResponse.data === 'string'
+            ? JSON.parse(visionResponse.data)
+            : visionResponse.data;
+      } catch {
+        throw new Error('Vision API: Invalid JSON response');
+      }
+
+      const coverage = visionData.soil_analysis?.coverage_percent || 0;
+      const aiConfidence = visionData.confidence ?? 0.85;
+      const isValidLawn = visionData.is_lawn === true || coverage > 40;
+
+      setConfidence(aiConfidence);
+      setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
+      setIsLawnDetected(isValidLawn);
+
+      // Offline-ish flow testing: if lawn valid, generate dummy deck + assembled profile
+      if (isValidLawn) {
+        setScanStatus('recommending');
+        await delay(450);
+
+        const dummyDeck = buildDummyDeck(5);
+        const plants = stripDeckMetadata(dummyDeck);
+        setRecommendations(plants);
+
+        setAssembledProfile({
+          coordinates: { lat, lng },
+          hardiness_zone: '9b',
+          estimated_sun_exposure: 'full_sun',
+          estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
+          soil: { soil_texture: 'loamy', drainage: 'well' },
+          source: 'dummy_scan_profile',
+        });
+      }
+
+      setScanStatus('complete');
+    } catch (error: any) {
+      console.error('Scan failed:', error);
+      // If your store has an error message field, store it there; otherwise just show generic
+      // (Keeping this minimal to avoid store-method mismatches.)
+      setScanStatus('error');
+    }
+  };
+
+  // Loading state
+  if (!permission) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
+
+  // Permissions gate (camera + location)
   if (permission.granted !== true || locationPermission !== true) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
@@ -144,12 +167,9 @@ export default function ScanScreen() {
           LawnLens needs camera and location access to identify the best plants for your yard.
         </Text>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleRequestPermissions}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={handleRequestPermissions}>
           <Text style={styles.actionText}>
-            {!permission.granted ? "Enable Camera & Location" : "Enable Location"}
+            {!permission.granted ? 'Enable Camera & Location' : 'Enable Location'}
           </Text>
         </TouchableOpacity>
 
@@ -160,26 +180,6 @@ export default function ScanScreen() {
           <Text style={{ marginLeft: 20, color: locationPermission === true ? '#2e7d32' : '#d32f2f' }}>
             Location: {locationPermission === true ? '✓' : '✗'}
           </Text>
-        </View>
-      </View>
-    );
-  }
-
-  // If camera permission is denied or location is not explicitly granted
-  // (We don't want to block entirely on location, but let's prompt them)
-  if (!permission.granted) {
-    return (
-      <View style={[styles.container, styles.centered, { backgroundColor: '#121212' }]}>
-        <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#1e1e1e', borderRadius: 20, width: '85%' }}>
-          <Text style={{ textAlign: 'center', marginBottom: 20, color: '#e5e7eb', fontSize: 16 }}>
-            LawnLens needs camera access to scan your yard for plants.
-          </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}
-            onPress={requestPermission}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Grant Camera Permission</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -204,10 +204,7 @@ export default function ScanScreen() {
             <TouchableOpacity
               style={styles.scanButton}
               onPress={handleScan}
-              disabled={
-                currentScan.status === 'scanning' ||
-                currentScan.status === 'analyzing'
-              }
+              disabled={currentScan.status === 'scanning' || currentScan.status === 'analyzing'}
             >
               <Text style={styles.text}>Scan Lawn</Text>
             </TouchableOpacity>
@@ -232,9 +229,11 @@ export default function ScanScreen() {
         )}
       </View>
 
-      {(currentScan.status === 'scanning' || currentScan.status === 'analyzing' || currentScan.status === 'recommending') && (
+      {(currentScan.status === 'scanning' ||
+        currentScan.status === 'analyzing' ||
+        currentScan.status === 'recommending') && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <ScanningAnimation status={currentScan.status as any} />
+          <ScanningAnimation status={currentScan.status as any} label={STATUS_LABELS[currentScan.status] ?? ''} />
         </View>
       )}
 
@@ -242,7 +241,9 @@ export default function ScanScreen() {
         <View style={styles.errorOverlay}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorText}>Scan Failed</Text>
-          <Text style={styles.errorSubtext}>{currentScan.imageUri}</Text>
+          <Text style={styles.errorSubtext}>
+            Please try again. Make sure the camera is pointed at a grassy area and permissions are enabled.
+          </Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => setScanStatus('idle')}>
             <Text style={styles.resetText}>Try Again</Text>
           </TouchableOpacity>
@@ -256,7 +257,7 @@ export default function ScanScreen() {
               <>
                 <Text style={styles.successTitle}>Lawn Detected! 🌱</Text>
                 <Text style={styles.successSubtext}>
-                  We found a perfect spot for your new garden.
+                  We found a good spot for your new garden.
                 </Text>
 
                 <TouchableOpacity
@@ -272,7 +273,7 @@ export default function ScanScreen() {
               <>
                 <Text style={styles.notLawnTitle}>No Lawn Detected 🛑</Text>
                 <Text style={styles.successSubtext}>
-                  This area doesn't look like a plantable space.
+                  This area doesn't look like a plantable space. Try aiming at grass or soil.
                 </Text>
               </>
             )}
@@ -282,11 +283,12 @@ export default function ScanScreen() {
                 setScanStatus('idle');
                 setIsLawnDetected(false);
                 setConfidence(0);
+                setSurfaceType('Unknown');
               }}
               style={isLawnDetected ? { marginTop: 10 } : styles.actionButton}
             >
               <Text style={isLawnDetected ? styles.secondaryText : styles.actionText}>
-                {isLawnDetected ? "Scan Another Area" : "Try Again"}
+                {isLawnDetected ? 'Scan Another Area' : 'Try Again'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 999,
     borderWidth: 4,
-    borderColor: 'rgba(34,197,94,0.9)', // tailwind green-500-ish
+    borderColor: 'rgba(34,197,94,0.9)',
     backgroundColor: 'transparent',
   },
   buttonContainer: {
@@ -325,7 +327,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     backgroundColor: 'transparent',
-
   },
   scanButton: {
     alignSelf: 'center',
@@ -341,18 +342,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   text: { fontSize: 22, fontWeight: 'bold', color: '#2e7d32' },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  overlayText: {
-    color: 'white',
-    fontSize: 20,
-    marginTop: 10,
-  },
+
   locationPrompt: {
     marginTop: 16,
     paddingHorizontal: 8,
@@ -373,6 +363,14 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: '600',
   },
+
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
   errorEmoji: { fontSize: 50, marginBottom: 10 },
   errorText: { color: 'white', fontSize: 24, fontWeight: 'bold' },
   errorSubtext: { color: '#ccc', textAlign: 'center', marginTop: 10 },
@@ -383,6 +381,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginTop: 20,
   },
+  resetText: { color: 'white', fontWeight: 'bold' },
+
   completeOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -414,6 +414,4 @@ const styles = StyleSheet.create({
   },
   actionText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   secondaryText: { color: '#666', fontWeight: 'bold', fontSize: 14 },
-  resetText: { color: 'white', fontWeight: 'bold' },
-  permissionText: { padding: 20, textAlign: 'center', fontSize: 18, marginBottom: 20 },
 });
