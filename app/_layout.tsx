@@ -70,6 +70,10 @@ function RootLayoutNav() {
             name="recommendations"
             options={{ presentation: 'transparentModal', headerShown: false, animation: 'slide_from_bottom' }}
           />
+          <Stack.Screen
+            name="ar-demo"
+            options={{ headerShown: false }}
+          />
           {/* Part 4: Plant detail modal */}
           <Stack.Screen
             name="plant/[id]"
