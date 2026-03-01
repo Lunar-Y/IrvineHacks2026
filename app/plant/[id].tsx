@@ -14,7 +14,8 @@ import { useScanStore } from '@/lib/store/scanStore';
 export default function PlantDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { recommendations } = useScanStore();
+    const { currentScan } = useScanStore();
+    const recommendations = currentScan.recommendations;
 
     const index = parseInt(id ?? '0', 10);
     const plant = recommendations[index];
