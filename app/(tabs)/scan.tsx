@@ -89,7 +89,7 @@ export default function ScanScreen() {
 
     try {
       setScanStatus('scanning');
-      
+
       // 1. Capture Frame (base64)
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
@@ -165,17 +165,17 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView 
+      <CameraView
         ref={cameraRef}
-        style={styles.camera} 
+        style={styles.camera}
         facing="back"
       >
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.scanButton} 
+          <TouchableOpacity
+            style={styles.scanButton}
             onPress={handleScan}
             disabled={
-              currentScan.status === 'scanning' || 
+              currentScan.status === 'scanning' ||
               currentScan.status === 'analyzing'
             }
           >
@@ -190,8 +190,13 @@ export default function ScanScreen() {
               <TouchableOpacity
                 style={styles.locationButton}
                 onPress={async () => {
-                  const { status } = await Location.requestForegroundPermissionsAsync();
-                  setLocationPermission(status === 'granted');
+                  try {
+                    const { status } = await Location.requestForegroundPermissionsAsync();
+                    setLocationPermission(status === 'granted');
+                  } catch (error) {
+                    console.error('Error requesting location permissions:', error);
+                    setLocationPermission(false); // Set a fallback state
+                  }
                 }}
               >
                 <Text style={styles.locationButtonText}>Enable Location</Text>
@@ -200,7 +205,7 @@ export default function ScanScreen() {
           )}
         </View>
       </CameraView>
-      
+
       {(currentScan.status === 'scanning' || currentScan.status === 'analyzing') && (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color="white" />
