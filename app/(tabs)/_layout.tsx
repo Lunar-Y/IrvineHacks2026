@@ -54,18 +54,7 @@ export default function TabLayout() {
           },
         }}
       />
-      <Tabs.Screen
-        name="care"
-        options={{ title: 'Care' }}
-        listeners={{
-          tabPress: (event) => {
-            if (pathname !== '/recommendations') return;
-            event.preventDefault();
-            router.dismiss();
-            setTimeout(() => router.replace('/(tabs)/care'), 0);
-          },
-        }}
-      />
+
       <Tabs.Screen
         name="impact"
         options={{ title: 'Impact' }}
