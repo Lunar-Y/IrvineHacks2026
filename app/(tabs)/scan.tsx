@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator, Platform, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -105,8 +106,7 @@ export default function ScanScreen() {
           source: 'dummy_scan_profile',
         });
 
-        // Navigate directly to recommendations as intended in the offline flow
-        router.push('/recommendations');
+        // Do not automatically navigate; the user must press the "View Recommendations" button from the success overlay.
       }
       setScanStatus('complete');
     } catch (error: any) {
@@ -129,37 +129,45 @@ export default function ScanScreen() {
   const handleRequestPermissions = async () => {
     const cameraResult = await requestPermission();
     if (cameraResult.granted) {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
+      const locationResult = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(locationResult.status === 'granted');
     }
   };
 
   // 3. Use optional chaining (?.) to safely check granted status
   if (permission.granted !== true || locationPermission !== true) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-        <Text style={styles.errorEmoji}>🌱</Text>
-        <Text style={styles.successTitle}>Permissions Required</Text>
-        <Text style={[styles.successSubtext, { textAlign: 'center', marginBottom: 20 }]}>
-          LawnLens needs camera and location access to identify the best plants for your yard.
-        </Text>
+      <View style={[styles.container, { backgroundColor: '#0F1412', justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <View style={{ backgroundColor: '#18201D', padding: 24, borderRadius: 16, width: '90%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}>
+          <Text style={styles.errorEmoji}>🌱</Text>
+          <Text style={[styles.successTitle, { color: '#F5F7F6', fontSize: 18, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Permissions Required</Text>
+          <Text style={[styles.successSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
+            LawnLens needs camera and location access to accurately identify the best plants for your yard's unique environment.
+          </Text>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleRequestPermissions}
-        >
-          <Text style={styles.actionText}>
-            {!permission.granted ? "Enable Camera & Location" : "Enable Location"}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center' }]}
+            onPress={handleRequestPermissions}
+          >
+            <Text style={[styles.actionText, { color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '600' }]}>
+              {!permission.granted ? "Enable Camera & Location" : "Enable Location"}
+            </Text>
+          </TouchableOpacity>
 
-        <View style={{ marginTop: 20, flexDirection: 'row' }}>
-          <Text style={{ color: permission.granted ? '#2e7d32' : '#d32f2f' }}>
-            Camera: {permission.granted ? '✓' : '✗'}
-          </Text>
-          <Text style={{ marginLeft: 20, color: locationPermission === true ? '#2e7d32' : '#d32f2f' }}>
-            Location: {locationPermission === true ? '✓' : '✗'}
-          </Text>
+          <View style={{ marginTop: 24, width: '100%', paddingHorizontal: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={{ color: '#F5F7F6', fontSize: 14, fontFamily: 'Inter' }}>Camera Access</Text>
+              <Text style={{ color: permission.granted ? '#2F6B4F' : '#B24A3A', fontWeight: '600' }}>
+                {permission.granted ? 'Granted' : 'Required'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: '#F5F7F6', fontSize: 14, fontFamily: 'Inter' }}>Location Services</Text>
+              <Text style={{ color: locationPermission === true ? '#2F6B4F' : '#B24A3A', fontWeight: '600' }}>
+                {locationPermission === true ? 'Granted' : 'Required'}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -169,16 +177,16 @@ export default function ScanScreen() {
   // (We don't want to block entirely on location, but let's prompt them)
   if (!permission.granted) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: '#121212' }]}>
-        <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#1e1e1e', borderRadius: 20, width: '85%' }}>
-          <Text style={{ textAlign: 'center', marginBottom: 20, color: '#e5e7eb', fontSize: 16 }}>
-            LawnLens needs camera access to scan your yard for plants.
+      <View style={[styles.container, styles.centered, { backgroundColor: '#0F1412' }]}>
+        <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#18201D', borderRadius: 16, width: '90%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}>
+          <Text style={{ textAlign: 'center', marginBottom: 24, color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '500' }}>
+            LawnLens requires camera access to scan your yard and recommend suitable plants.
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}
+            style={{ backgroundColor: '#2F6B4F', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 999, width: '100%', alignItems: 'center' }}
             onPress={requestPermission}
           >
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Grant Camera Permission</Text>
+            <Text style={{ color: '#F5F7F6', fontWeight: '600', fontSize: 16, fontFamily: 'Inter' }}>Grant Camera Access</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,16 +196,35 @@ export default function ScanScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.camera} facing="back">
-          {/* Green guide ring to help users aim at their lawn */}
-          <View style={styles.guideRing} />
-        </CameraView>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back" />
 
-        <LawnDetectionOverlay
-          isLawnDetected={isLawnDetected}
-          confidence={confidence}
-          surfaceType={surfaceType}
+        {/* AR-style Viewfinder Brackets */}
+        {(currentScan.status !== 'complete' && currentScan.status !== 'error') && (
+          <View style={styles.viewfinderContainer} pointerEvents="none">
+            <View style={styles.viewfinderBox}>
+              <View style={[styles.bracket, styles.bracketTopLeft, { borderColor: isLawnDetected ? '#2F6B4F' : 'rgba(255, 255, 255, 0.5)' }]} />
+              <View style={[styles.bracket, styles.bracketTopRight, { borderColor: isLawnDetected ? '#2F6B4F' : 'rgba(255, 255, 255, 0.5)' }]} />
+              <View style={[styles.bracket, styles.bracketBottomLeft, { borderColor: isLawnDetected ? '#2F6B4F' : 'rgba(255, 255, 255, 0.5)' }]} />
+              <View style={[styles.bracket, styles.bracketBottomRight, { borderColor: isLawnDetected ? '#2F6B4F' : 'rgba(255, 255, 255, 0.5)' }]} />
+            </View>
+          </View>
+        )}
+
+        {/* Gradient Mask for Bottom Controls */}
+        <LinearGradient
+          colors={['transparent', 'rgba(15, 20, 18, 0.8)', '#0F1412']}
+          locations={[0, 0.5, 1]}
+          style={styles.gradientMask}
+          pointerEvents="none"
         />
+
+        {(currentScan.status !== 'complete' && currentScan.status !== 'error') && (
+          <LawnDetectionOverlay
+            isLawnDetected={isLawnDetected}
+            confidence={confidence}
+            surfaceType={surfaceType}
+          />
+        )}
 
         {currentScan.status === 'idle' && (
           <View style={styles.buttonContainer}>
@@ -205,14 +232,13 @@ export default function ScanScreen() {
               style={styles.scanButton}
               onPress={handleScan}
               disabled={
-                currentScan.status === 'scanning' ||
-                currentScan.status === 'analyzing'
+                currentScan.status !== 'idle'
               }
             >
               <Text style={styles.text}>Scan Lawn</Text>
             </TouchableOpacity>
 
-            {locationPermission === false && (
+            {!locationPermission && (
               <View style={styles.locationPrompt}>
                 <Text style={styles.locationText}>
                   Enable location so we can tailor recommendations to your area.
@@ -220,8 +246,8 @@ export default function ScanScreen() {
                 <TouchableOpacity
                   style={styles.locationButton}
                   onPress={async () => {
-                    const { status } = await Location.requestForegroundPermissionsAsync();
-                    setLocationPermission(status === 'granted');
+                    const locationResult = await Location.requestForegroundPermissionsAsync();
+                    setLocationPermission(locationResult.status === 'granted');
                   }}
                 >
                   <Text style={styles.locationButtonText}>Enable Location</Text>
@@ -232,46 +258,55 @@ export default function ScanScreen() {
         )}
       </View>
 
-      {(currentScan.status === 'scanning' || currentScan.status === 'analyzing' || currentScan.status === 'recommending') && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <ScanningAnimation status={currentScan.status as any} />
+      {/* Status Text positioned inside the gradient above the button */}
+      {(currentScan.status !== 'idle' && currentScan.status !== 'error' && currentScan.status !== 'complete') && (
+        <View style={styles.statusTextContainer} pointerEvents="none">
+          <ActivityIndicator size="small" color="#F5F7F6" style={{ marginRight: 8 }} />
+          <Text style={styles.statusText}>{STATUS_LABELS[currentScan.status as keyof typeof STATUS_LABELS]}</Text>
         </View>
       )}
 
       {currentScan.status === 'error' && (
         <View style={styles.errorOverlay}>
-          <Text style={styles.errorEmoji}>⚠️</Text>
-          <Text style={styles.errorText}>Scan Failed</Text>
-          <Text style={styles.errorSubtext}>{currentScan.imageUri}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => setScanStatus('idle')}>
-            <Text style={styles.resetText}>Try Again</Text>
-          </TouchableOpacity>
+          <View style={{ backgroundColor: '#18201D', padding: 32, borderRadius: 16, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 12 }}>
+            <Text style={[styles.errorEmoji, { marginBottom: 16 }]}>⚠️</Text>
+            <Text style={[styles.errorText, { color: '#B24A3A', fontSize: 20, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Scan Failed</Text>
+            <Text style={[styles.errorSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
+              {currentScan.imageUri || "Unable to analyze the environment. Please try again."}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 32, width: '100%', alignItems: 'center' }]}
+              onPress={() => setScanStatus('idle')}
+            >
+              <Text style={[styles.resetText, { color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '600' }]}>Scan Another Area</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
       {currentScan.status === 'complete' && (
         <View style={styles.completeOverlay}>
-          <View style={styles.successCard}>
+          <View style={[styles.successCard, { backgroundColor: '#18201D', padding: 32, borderRadius: 16, width: '90%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 12 }]}>
             {isLawnDetected ? (
               <>
-                <Text style={styles.successTitle}>Lawn Detected! 🌱</Text>
-                <Text style={styles.successSubtext}>
+                <Text style={[styles.successTitle, { color: '#F5F7F6', fontSize: 24, fontFamily: 'Inter', fontWeight: 'bold' }]}>Lawn Detected! 🌱</Text>
+                <Text style={[styles.successSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
                   We found a perfect spot for your new garden.
                 </Text>
 
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: '#2F6B4F', borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center', marginBottom: 12 }]}
                   onPress={() => {
                     router.push('/recommendations');
                   }}
                 >
-                  <Text style={styles.actionText}>View Recommendations</Text>
+                  <Text style={[styles.actionText, { color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '600' }]}>View Recommendations</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.notLawnTitle}>No Lawn Detected 🛑</Text>
-                <Text style={styles.successSubtext}>
+                <Text style={[styles.notLawnTitle, { color: '#B24A3A', fontSize: 24, fontFamily: 'Inter', fontWeight: 'bold' }]}>No Lawn Detected 🛑</Text>
+                <Text style={[styles.successSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', marginTop: 8, marginBottom: 24, textAlign: 'center' }]}>
                   This area doesn't look like a plantable space.
                 </Text>
               </>
@@ -283,10 +318,12 @@ export default function ScanScreen() {
                 setIsLawnDetected(false);
                 setConfidence(0);
               }}
-              style={isLawnDetected ? { marginTop: 10 } : styles.actionButton}
+              style={[{ borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center' },
+              isLawnDetected ? { backgroundColor: 'transparent' } : { backgroundColor: '#18201D', borderWidth: 2, borderColor: '#9FAFAA' }]}
             >
-              <Text style={isLawnDetected ? styles.secondaryText : styles.actionText}>
-                {isLawnDetected ? "Scan Another Area" : "Try Again"}
+              <Text style={[{ fontSize: 16, fontFamily: 'Inter', fontWeight: '600' },
+              isLawnDetected ? { color: '#9FAFAA' } : { color: '#F5F7F6' }]}>
+                Scan Another Area
               </Text>
             </TouchableOpacity>
           </View>
@@ -305,51 +342,117 @@ const styles = StyleSheet.create({
   },
   cameraContainer: { flex: 1 },
   camera: { flex: 1 },
-  guideRing: {
-    position: 'absolute',
-    top: '30%',
-    left: '15%',
-    right: '15%',
+  viewfinderContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 60, // Shift up slightly to balance with the bottom gradient
+  },
+  viewfinderBox: {
+    width: '70%',
     aspectRatio: 1,
-    borderRadius: 999,
+    position: 'relative',
+  },
+  bracket: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
     borderWidth: 4,
-    borderColor: 'rgba(34,197,94,0.9)', // tailwind green-500-ish
-    backgroundColor: 'transparent',
+  },
+  bracketTopLeft: {
+    top: 0,
+    left: 0,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopLeftRadius: 16,
+  },
+  bracketTopRight: {
+    top: 0,
+    right: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderTopRightRadius: 16,
+  },
+  bracketBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderBottomLeftRadius: 16,
+  },
+  bracketBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderBottomRightRadius: 16,
+  },
+  gradientMask: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%', // Covers the bottom 40% of the screen
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 32,
+    bottom: 40,
     left: 0,
     right: 0,
     flexDirection: 'column',
     alignItems: 'center',
     paddingHorizontal: 24,
     backgroundColor: 'transparent',
-
+    zIndex: 5,
   },
   scanButton: {
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: '50%',
-    maxWidth: 260,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 18,
-    borderRadius: 35,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-    elevation: 5,
+    width: '100%',
+    maxWidth: 280,
+    backgroundColor: '#2F6B4F',
+    paddingVertical: 18,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  text: { fontSize: 22, fontWeight: 'bold', color: '#2e7d32' },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+  text: {
+    fontSize: 18,
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    color: '#F5F7F6'
+  },
+  statusTextContainer: {
+    position: 'absolute',
+    bottom: 120, // Positioned comfortably above the button container
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    zIndex: 4,
+  },
+  statusText: {
+    color: '#F5F7F6',
+    fontFamily: 'Inter',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 20, 18, 0.6)', // 0F1412 base with opacity instead of pure black
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 10,
   },
   overlayText: {
-    color: 'white',
+    color: '#F5F7F6',
     fontSize: 20,
     marginTop: 10,
   },
@@ -359,7 +462,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationText: {
-    color: 'white',
+    color: '#F5F7F6',
+    fontFamily: 'Inter',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -367,10 +471,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#18201D',
   },
   locationButtonText: {
-    color: 'black',
+    color: '#B7D3C0',
+    fontFamily: 'Inter',
     fontWeight: '600',
   },
   errorEmoji: { fontSize: 50, marginBottom: 10 },
@@ -385,35 +490,21 @@ const styles = StyleSheet.create({
   },
   completeOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15, 20, 18, 0.6)',
+    justifyContent: 'center', // Changed from flex-end
+    alignItems: 'center',
     padding: 20,
-    paddingBottom: 100,
+    zIndex: 10,
   },
   successCard: {
-    backgroundColor: 'white',
-    padding: 25,
-    borderRadius: 25,
     alignItems: 'center',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
   },
-  successTitle: { fontSize: 24, fontWeight: 'bold', color: '#1b5e20' },
-  notLawnTitle: { fontSize: 24, fontWeight: 'bold', color: '#d32f2f' },
-  successSubtext: { fontSize: 16, color: '#666', marginTop: 5, marginBottom: 20 },
-  actionButton: {
-    backgroundColor: '#2e7d32',
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 30,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  actionText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  secondaryText: { color: '#666', fontWeight: 'bold', fontSize: 14 },
+  successTitle: {}, // Styles moved inline
+  notLawnTitle: {}, // Styles moved inline
+  successSubtext: {}, // Styles moved inline
+  actionButton: {}, // Styles moved inline
+  actionText: {}, // Styles moved inline
+  secondaryText: {}, // Styles moved inline
   resetText: { color: 'white', fontWeight: 'bold' },
   permissionText: { padding: 20, textAlign: 'center', fontSize: 18, marginBottom: 20 },
 });
