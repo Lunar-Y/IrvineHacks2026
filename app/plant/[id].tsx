@@ -9,11 +9,14 @@ import {
     SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useScanStore } from '@/lib/store/scanStore';
 
 export default function PlantDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { currentScan } = useScanStore();
     const recommendations = currentScan.recommendations;
 
@@ -53,7 +56,7 @@ export default function PlantDetailScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
+            <ScrollView style={styles.body} contentContainerStyle={[styles.bodyContent, { paddingBottom: Math.max(insets.bottom, 24) + 100 }]}>
                 {/* Names */}
                 <Text style={styles.commonName}>{plant.common_name}</Text>
                 <Text style={styles.scientificName}>{plant.scientific_name}</Text>
@@ -80,6 +83,18 @@ export default function PlantDetailScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Floating AR CTA inside safe area */}
+            <View style={[styles.ctaContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+                <TouchableOpacity
+                    style={styles.ctaButton}
+                    onPress={() => router.push(`/ar/native/${index}`)}
+                    activeOpacity={0.85}
+                >
+                    <FontAwesome name="cube" size={20} color="#F5F7F6" />
+                    <Text style={styles.ctaButtonText}>Place Plant in AR</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }
@@ -171,4 +186,34 @@ const styles = StyleSheet.create({
     },
     errorText: { fontSize: 18, color: '#374151', marginBottom: 16 },
     backLink: { color: '#16a34a', fontWeight: '700', fontSize: 16 },
+    ctaContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#ffffff',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderColor: '#f3f4f6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 20,
+    },
+    ctaButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#2F6B4F',
+        paddingVertical: 18,
+        borderRadius: 16,
+        gap: 10,
+    },
+    ctaButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
 });

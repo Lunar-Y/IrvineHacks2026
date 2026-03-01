@@ -10,7 +10,7 @@ function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome size={26} style={{ marginBottom: -3 }} {...props} />;
 }
 
 import { View } from 'react-native';
@@ -32,7 +32,10 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen
         name="scan"
-        options={{ title: 'Scan' }}
+        options={{
+          title: 'Scan',
+          tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
+        }}
         listeners={{
           tabPress: (event) => {
             if (pathname !== '/recommendations') return;
@@ -44,7 +47,10 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="plants"
-        options={{ title: 'My Plants' }}
+        options={{
+          title: 'My Plants',
+          tabBarIcon: ({ color }) => <TabBarIcon name="leaf" color={color} />,
+        }}
         listeners={{
           tabPress: (event) => {
             if (pathname !== '/recommendations') return;
@@ -57,7 +63,10 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="impact"
-        options={{ title: 'Impact' }}
+        options={{
+          title: 'Impact',
+          tabBarIcon: ({ color }) => <TabBarIcon name="bar-chart" color={color} />,
+        }}
         listeners={{
           tabPress: (event) => {
             if (pathname !== '/recommendations') return;
