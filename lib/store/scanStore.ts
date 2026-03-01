@@ -45,6 +45,13 @@ export interface PlacedItemData {
   id: number;
   archetype: string;
   pos: [number, number, number];
+  plantIndex: number;
+  speciesScientificName?: string;
+  speciesCommonName?: string;
+  imageUrl?: string;
+  waterRequirement?: 'low' | 'medium' | 'high';
+  matureHeightMeters?: number;
+  isToxicToPets?: boolean;
 }
 
 interface ScanStore {
@@ -59,6 +66,9 @@ interface ScanStore {
   setScanImage: (uri: string) => void;
   setRecommendations: (recs: PlantRecommendation[]) => void;
   setAssembledProfile: (profile: AssembledProfile | null) => void;
+  activeRecommendationIndex: number | null;
+  setActiveRecommendationIndex: (index: number | null) => void;
+  getActiveRecommendation: () => PlantRecommendation | null;
   resetScan: () => void;
 
   placedPlantCounts: Record<string, number>;
@@ -67,7 +77,7 @@ interface ScanStore {
   clearPlacedPlants: () => void;
 }
 
-export const useScanStore = create<ScanStore>((set) => ({
+export const useScanStore = create<ScanStore>((set, get) => ({
   currentScan: {
     id: null,
     imageUri: null,
@@ -79,6 +89,17 @@ export const useScanStore = create<ScanStore>((set) => ({
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
   setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
+  activeRecommendationIndex: null,
+  setActiveRecommendationIndex: (index) => set({ activeRecommendationIndex: index }),
+  getActiveRecommendation: () => {
+    const state = get();
+    const index = state.activeRecommendationIndex;
+    const recommendations = state.currentScan.recommendations;
+    if (!Number.isInteger(index) || index === null || index < 0 || index >= recommendations.length) {
+      return null;
+    }
+    return recommendations[index];
+  },
   resetScan: () => set({
     currentScan: {
       id: null,
@@ -87,6 +108,7 @@ export const useScanStore = create<ScanStore>((set) => ({
       recommendations: [],
       assembledProfile: null,
     },
+    activeRecommendationIndex: null,
   }),
 
   placedPlantCounts: {},

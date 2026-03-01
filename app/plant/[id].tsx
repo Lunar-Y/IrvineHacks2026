@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useScanStore } from '@/lib/store/scanStore';
 
 export default function PlantDetailScreen() {
@@ -22,6 +21,14 @@ export default function PlantDetailScreen() {
     const parsedIndex = Number.parseInt(id ?? '', 10);
     const isValidIndex = Number.isInteger(parsedIndex) && parsedIndex >= 0 && parsedIndex < recommendations.length;
     const plant = isValidIndex ? recommendations[parsedIndex] : undefined;
+    const handlePlacePlantPress = () => {
+        if (!isValidIndex) return;
+        // Close the detail modal first so AR can render full-screen under the tabs layout.
+        router.dismissAll();
+        setTimeout(() => {
+            router.navigate(`/(tabs)/ar/${parsedIndex}`);
+        }, 0);
+    };
 
     if (!plant) {
         return (
@@ -88,14 +95,10 @@ export default function PlantDetailScreen() {
             <View style={[styles.ctaContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 <TouchableOpacity
                     style={styles.ctaButton}
-                    onPress={() => {
-                        router.dismissAll();
-                        setTimeout(() => router.navigate(`/(tabs)/ar/${index}`), 50);
-                    }}
-                    activeOpacity={0.85}
+                    onPress={handlePlacePlantPress}
+                    activeOpacity={0.72}
                 >
-                    <FontAwesome name="cube" size={20} color="#F5F7F6" />
-                    <Text style={styles.ctaButtonText}>Place Plant in AR</Text>
+                    <Text style={styles.ctaButtonText}>🌿  Place Plant</Text>
                 </TouchableOpacity>
             </View>
         </View>

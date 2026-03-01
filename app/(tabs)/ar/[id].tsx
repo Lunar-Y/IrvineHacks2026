@@ -103,13 +103,26 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       return;
     }
 
-    // Get the currently selected model from parent
     const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
+    const scanState = useScanStore.getState();
+    const activeIndex = scanState.activeRecommendationIndex;
+    const activeRecommendation = scanState.getActiveRecommendation();
+    if (activeRecommendation === null || activeIndex === null) {
+      arSceneNavigator?.viroAppProps?.onSelectionMissing?.();
+      return;
+    }
 
     addPlacedItem({
       id: Date.now(),
       pos: [...previewPos] as [number, number, number],
       archetype,
+      plantIndex: activeIndex,
+      speciesScientificName: activeRecommendation.scientific_name,
+      speciesCommonName: activeRecommendation.common_name,
+      imageUrl: activeRecommendation.image_url,
+      waterRequirement: activeRecommendation.water_requirement,
+      matureHeightMeters: activeRecommendation.mature_height_meters,
+      isToxicToPets: activeRecommendation.is_toxic_to_pets,
     });
     arSceneNavigator?.viroAppProps?.onPlaced?.();
   };
@@ -172,11 +185,20 @@ export default function ARNativeScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
 
-  const { currentScan, resetScan, clearPlacedPlants, placedPlantCounts } = useScanStore();
-  const recommendations = currentScan.recommendations;
+  const {
+    currentScan,
+    resetScan,
+    clearPlacedPlants,
+    placedPlantCounts,
+    setActiveRecommendationIndex,
+  } = useScanStore();
+  const recommendations = Array.isArray(currentScan.recommendations) ? currentScan.recommendations : [];
+  const parsedId = Number.parseInt(id ?? '', 10);
+  const initialPlantIndex =
+    Number.isInteger(parsedId) && parsedId >= 0 && parsedId < recommendations.length ? parsedId : 0;
 
   // Track the active plant in local state so swapping plants never causes navigation
-  const [activePlantIndex, setActivePlantIndex] = useState(() => parseInt(id ?? '0', 10));
+  const [activePlantIndex, setActivePlantIndex] = useState(initialPlantIndex);
   const activePlant = recommendations[activePlantIndex];
   const selectedArchetype = activePlant?.model_archetype || 'tree';
 
@@ -190,6 +212,12 @@ export default function ARNativeScreen() {
   const [showDeck, setShowDeck] = useState(false);
 
   const [placeFn, setPlaceFn] = useState<(() => void) | null>(null);
+
+  const handleScanAnotherArea = useCallback(() => {
+    resetScan();
+    clearPlacedPlants();
+    router.navigate('/(tabs)/scan');
+  }, [clearPlacedPlants, resetScan, router]);
 
   if (!viro) {
     return (
@@ -214,6 +242,10 @@ export default function ARNativeScreen() {
     setHint('🌱 Placed!');
     setTimeout(() => setHint(null), 1500);
   };
+  const onSelectionMissing = () => {
+    setHint('Select a plant first');
+    setTimeout(() => setHint(null), 1500);
+  };
 
   // Mount Viro ONCE when the screen first becomes focused. Never unmount it—
   // tearing down the scene resets spatial tracking and causes coordinate drift.
@@ -222,6 +254,10 @@ export default function ARNativeScreen() {
     const t = setTimeout(() => setMountViro(true), 300);
     return () => clearTimeout(t);
   }, [isFocused]);
+
+  useEffect(() => {
+    setActiveRecommendationIndex(initialPlantIndex);
+  }, [initialPlantIndex, setActiveRecommendationIndex]);
 
   return (
     <View style={styles.container}>
@@ -233,6 +269,7 @@ export default function ARNativeScreen() {
             setPlaceFn,
             onAimTooHigh: showAimTooHigh,
             onPlaced,
+            onSelectionMissing,
             selectedArchetype,
             showDeck,
             _onTrackingReady: setIsReady,
@@ -244,6 +281,16 @@ export default function ARNativeScreen() {
         <View style={styles.scene} />
       )}
 
+      <TouchableOpacity
+        accessibilityLabel="Reset scan"
+        accessibilityHint="Returns to scan lawn screen"
+        hitSlop={10}
+        onPress={handleScanAnotherArea}
+        style={[styles.scanAnotherFixedButton, { top: Math.max(insets.top, 14) }]}
+      >
+        <FontAwesome name="undo" size={16} color="#F5F7F6" />
+      </TouchableOpacity>
+
       {/* ── Top Bar ── */}
       {!showDeck && (
         <View style={[styles.topBar, { top: Math.max(insets.top, 14) }]} pointerEvents="box-none">
@@ -251,17 +298,17 @@ export default function ARNativeScreen() {
             onPress={() => setShowDeck(true)}
             style={styles.backButton}
           >
-            <FontAwesome name="chevron-left" size={16} color="#fff" style={{ marginRight: 6 }} />
+            <FontAwesome name="chevron-left" size={14} color="#F5F7F6" style={{ marginRight: 6 }} />
             <Text style={styles.buttonText}>Back</Text>
           </TouchableOpacity>
-
-          {totalPlacedCount > 0 ? (
-            <View style={styles.statusPill}>
-              <Text style={styles.statusText}>{`${totalPlacedCount} placed`}</Text>
-            </View>
-          ) : <View />}
         </View>
       )}
+
+      {!showDeck && totalPlacedCount > 0 ? (
+        <View style={[styles.statusPillFloating, { top: Math.max(insets.top, 14) }]} pointerEvents="none">
+          <Text style={styles.statusText}>{`${totalPlacedCount} placed`}</Text>
+        </View>
+      ) : null}
 
       {/* ── Hint HUD ── */}
       {!showDeck && (
@@ -291,13 +338,12 @@ export default function ARNativeScreen() {
       {/* ── Recommendations Overlay (When sliding back up) ── */}
       {showDeck && (
         <RecommendationsOverlay
-          onRequestRescan={() => {
-            resetScan();
-            clearPlacedPlants();
-            router.navigate('/(tabs)/scan');
-          }}
+          onRequestRescan={handleScanAnotherArea}
+          hideScanAnotherButton
+          reserveTabBarSpace={false}
           onPlantPress={(idx) => {
             setActivePlantIndex(idx);
+            setActiveRecommendationIndex(idx);
             setShowDeck(false);
           }}
         />
@@ -308,45 +354,76 @@ export default function ARNativeScreen() {
 
 // ── Styles ───────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#0F1412' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   scene: { flex: 1 },
 
+  scanAnotherFixedButton: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 50,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2F6B4F',
+  },
   topBar: {
-    position: 'absolute', left: 16, right: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   backButton: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(55, 65, 81, 0.85)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#18201D',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
   },
-  buttonText: { color: 'white', fontWeight: '700' },
-  statusPill: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999 },
-  statusText: { color: '#f9fafb', fontWeight: '600', fontSize: 13, textAlign: 'center' },
+  buttonText: { color: '#F5F7F6', fontWeight: '600', fontSize: 14 },
+  statusPillFloating: {
+    position: 'absolute',
+    alignSelf: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#18201D',
+  },
+  statusText: { color: '#F5F7F6', fontWeight: '600', fontSize: 12, textAlign: 'center' },
 
   centerHud: {
-    position: 'absolute', top: '20%', alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 999,
+    position: 'absolute',
+    top: '20%',
+    alignSelf: 'center',
+    backgroundColor: '#18201D',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 16,
   },
-  centerHudText: { color: 'rgba(255,255,255,0.9)', fontWeight: '600', fontSize: 14 },
+  centerHudText: { color: '#F5F7F6', fontWeight: '600', fontSize: 14 },
 
   bottomControls: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     alignItems: 'center', justifyContent: 'flex-end',
-    paddingTop: 40, // allows gradient overlay if we want one
+    paddingTop: 32,
   },
   placeButton: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#10B981', paddingHorizontal: 32, paddingVertical: 18,
-    borderRadius: 999, shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 5, elevation: 8,
-    borderWidth: 2, borderColor: '#fff'
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2F6B4F',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
   placeButtonDisabled: {
-    backgroundColor: '#4b5563',
-    borderColor: '#9ca3af',
+    backgroundColor: '#18201D',
   },
-  placeButtonText: { color: 'white', fontWeight: '800', fontSize: 18 },
+  placeButtonText: { color: '#F5F7F6', fontWeight: '600', fontSize: 14 },
 
   fallbackTitle: { color: '#fca5a5', fontSize: 20, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
   fallbackBody: { color: '#e5e7eb', fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 20 },
