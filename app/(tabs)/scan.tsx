@@ -1,15 +1,64 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, ActivityIndicator, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Button,
+  ActivityIndicator,
+  Platform,
+  Animated,
+  PanResponder,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { useScanStore } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SHEET_MAX_HEIGHT = SCREEN_HEIGHT * 0.7;
+const SHEET_MIN_HEIGHT = 120;
+const DRAG_HANDLE_HEIGHT = 44;
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
   const { currentScan, setScanStatus, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
+
+  // Draggable "Your Recommendations" sheet: translateY 0 = expanded, positive = pulled down (collapse)
+  const sheetTranslateY = useRef(new Animated.Value(0)).current;
+  const sheetPosition = useRef(0);
+  const dragStartY = useRef(0);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 4,
+      onPanResponderGrant: () => {
+        dragStartY.current = sheetPosition.current;
+      },
+      onPanResponderMove: (_, { dy }) => {
+        const next = Math.max(0, Math.min(SHEET_MAX_HEIGHT - DRAG_HANDLE_HEIGHT, dragStartY.current + dy));
+        sheetTranslateY.setValue(next);
+      },
+      onPanResponderRelease: (_, { dy, vy }) => {
+        const next = Math.max(0, Math.min(SHEET_MAX_HEIGHT - DRAG_HANDLE_HEIGHT, dragStartY.current + dy));
+        sheetPosition.current = next;
+        const collapseThreshold = (SHEET_MAX_HEIGHT - DRAG_HANDLE_HEIGHT) / 2;
+        const shouldCollapse = next > collapseThreshold || vy > 0.3;
+        const toValue = shouldCollapse ? SHEET_MAX_HEIGHT - DRAG_HANDLE_HEIGHT : 0;
+        sheetPosition.current = toValue;
+        Animated.spring(sheetTranslateY, {
+          toValue,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 12,
+        }).start();
+      },
+    })
+  ).current;
 
   useEffect(() => {
     (async () => {
@@ -161,17 +210,51 @@ export default function ScanScreen() {
         </View>
       )}
 
-      {currentScan.status === 'complete' && (
+      {currentScan.status === 'complete' && currentScan.recommendations.length > 0 && (
+        <Animated.View
+          style={[
+            styles.recommendationsSheet,
+            {
+              height: SHEET_MAX_HEIGHT,
+              transform: [{ translateY: sheetTranslateY }],
+            },
+          ]}
+        >
+          <View style={styles.sheetHandle} {...panResponder.panHandlers}>
+            <View style={styles.sheetHandleBar} />
+            <Text style={styles.sheetHandleTitle}>Your Recommendations</Text>
+          </View>
+          <ScrollView
+            style={styles.sheetContent}
+            contentContainerStyle={styles.sheetContentContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {currentScan.recommendations.map((rec, i) => (
+              <View key={i} style={styles.recCard}>
+                <Text style={styles.recCardTitle}>{rec.common_name}</Text>
+                <Text style={styles.recCardScientific}>{rec.scientific_name}</Text>
+                {rec.fit_score != null && (
+                  <Text style={styles.recCardScore}>Fit: {rec.fit_score}/100</Text>
+                )}
+                <Text style={styles.recCardWhy} numberOfLines={2}>{rec.why_it_fits}</Text>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={[styles.scanButton, { marginTop: 16, marginBottom: 24 }]}
+              onPress={() => setScanStatus('idle')}
+            >
+              <Text style={styles.text}>Scan Another Area</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      )}
+
+      {currentScan.status === 'complete' && currentScan.recommendations.length === 0 && (
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>Scan Complete! 🌱</Text>
-          {currentScan.recommendations.length > 0 && (
-            <Text style={[styles.overlayText, { fontSize: 14, marginTop: 4 }]}>
-              {currentScan.recommendations.length} plants recommended based on your yard
-            </Text>
-          )}
-          <TouchableOpacity 
-             style={[styles.scanButton, { marginTop: 20 }]}
-             onPress={() => setScanStatus('idle')}
+          <TouchableOpacity
+            style={[styles.scanButton, { marginTop: 20 }]}
+            onPress={() => setScanStatus('idle')}
           >
             <Text style={styles.text}>Scan Another Area</Text>
           </TouchableOpacity>
@@ -249,5 +332,69 @@ const styles = StyleSheet.create({
   locationButtonText: {
     color: 'black',
     fontWeight: '600',
-  }
+  },
+  recommendationsSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  sheetHandle: {
+    height: DRAG_HANDLE_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+  },
+  sheetHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    marginBottom: 4,
+  },
+  sheetHandleTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111',
+  },
+  sheetContent: {
+    flex: 1,
+  },
+  sheetContentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  recCard: {
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  recCardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111',
+  },
+  recCardScientific: {
+    fontSize: 13,
+    color: '#444',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  recCardScore: {
+    fontSize: 12,
+    color: '#166534',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  recCardWhy: {
+    fontSize: 13,
+    color: '#333',
+    marginTop: 6,
+    lineHeight: 18,
+  },
 });
