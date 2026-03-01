@@ -8,6 +8,10 @@ import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
+// New Components
+import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
+import ScanningAnimation from '@/components/camera/ScanningAnimation';
+
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
   analyzing: 'Analyzing environment...',
@@ -20,24 +24,33 @@ function stripDeckMetadata(plants: ReturnType<typeof buildDummyDeck>): PlantReco
   return plants.map(({ id, source, rank, ...plant }) => plant);
 }
 
-// New Components
-import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
-import ScanningAnimation from '@/components/camera/ScanningAnimation';
-
 export default function ScanScreen() {
+  const router = useRouter();
+
   const [permission, requestPermission] = useCameraPermissions();
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+
   const [isLawnDetected, setIsLawnDetected] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [surfaceType, setSurfaceType] = useState<'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown'>('Unknown');
+
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
-  const router = useRouter();
 
-  // On web, after the user grants camera permission for the first time,
-  // automatically refresh the page ONCE so that the camera stream can be
-  // initialized correctly. We persist a flag in localStorage so this does
-  // not keep happening on every subsequent load.
+  // Try to read existing location permission on mount (no prompt yet)
+  useEffect(() => {
+    (async () => {
+      try {
+        const existing = await Location.getForegroundPermissionsAsync();
+        if (existing?.status) setLocationPermission(existing.status === 'granted');
+      } catch {
+        setLocationPermission(null);
+      }
+    })();
+  }, []);
+
+  // On web, after camera permission is granted for the first time,
+  // refresh once so camera stream initializes correctly.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (!permission?.granted) return;
@@ -51,54 +64,67 @@ export default function ScanScreen() {
     window.location.reload();
   }, [permission?.granted]);
 
+  const handleRequestPermissions = async () => {
+    const cameraResult = await requestPermission();
+    if (cameraResult.granted) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+    }
+  };
+
   const handleScan = async () => {
     if (!cameraRef.current) return;
 
     try {
       setScanStatus('scanning');
+
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5 });
       if (!photo?.base64) throw new Error('Failed to capture frame');
 
       setScanStatus('analyzing');
+
       const location = await Location.getCurrentPositionAsync({});
+      const lat = location.coords.latitude;
+      const lng = location.coords.longitude;
 
       const [visionResponse, profileResponse] = await Promise.all([
         supabase.functions.invoke('analyze-frame', { body: { image: photo.base64 } }),
-        supabase.functions.invoke('assemble-profile', { body: { lat: location.coords.latitude, lng: location.coords.longitude } })
+        supabase.functions.invoke('assemble-profile', { body: { lat, lng } }),
       ]);
 
       if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
       if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
 
-      // Parse AI Vision Result
-      let visionData;
+      // Parse Vision Result
+      let visionData: any;
       try {
-        visionData = typeof visionResponse.data === 'string'
-          ? JSON.parse(visionResponse.data)
-          : visionResponse.data;
-      } catch (e) {
+        visionData =
+          typeof visionResponse.data === 'string'
+            ? JSON.parse(visionResponse.data)
+            : visionResponse.data;
+      } catch {
         throw new Error('Vision API: Invalid JSON response');
       }
 
       const coverage = visionData.soil_analysis?.coverage_percent || 0;
-      const aiConfidence = visionData.confidence || 0.85;
+      const aiConfidence = visionData.confidence ?? 0.85;
       const isValidLawn = visionData.is_lawn === true || coverage > 40;
 
       setConfidence(aiConfidence);
       setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
       setIsLawnDetected(isValidLawn);
 
-      // Fallback logic from Jay branch: if valid lawn, generate dummy deck for UI flow testing
+      // Offline-ish flow testing: if lawn valid, generate dummy deck + assembled profile
       if (isValidLawn) {
         setScanStatus('recommending');
         await delay(450);
+
         const dummyDeck = buildDummyDeck(5);
         const plants = stripDeckMetadata(dummyDeck);
         setRecommendations(plants);
 
-        // Simulate assembled profile
         setAssembledProfile({
-          coordinates: { lat: location.coords.latitude, lng: location.coords.longitude },
+          coordinates: { lat, lng },
           hardiness_zone: '9b',
           estimated_sun_exposure: 'full_sun',
           estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
@@ -108,15 +134,17 @@ export default function ScanScreen() {
 
         // Do not automatically navigate; the user must press the "View Recommendations" button from the success overlay.
       }
+
       setScanStatus('complete');
     } catch (error: any) {
       console.error('Scan failed:', error);
-      useScanStore.getState().setScanImage(error.message || 'Unknown API Error');
+      // If your store has an error message field, store it there; otherwise just show generic
+      // (Keeping this minimal to avoid store-method mismatches.)
       setScanStatus('error');
     }
   };
 
-  // 1. Handle the loading state first to prevent "null" errors
+  // Loading state
   if (!permission) {
     return (
       <View style={styles.centered}>
@@ -317,6 +345,7 @@ export default function ScanScreen() {
                 setScanStatus('idle');
                 setIsLawnDetected(false);
                 setConfidence(0);
+                setSurfaceType('Unknown');
               }}
               style={[{ borderRadius: 999, paddingVertical: 14, paddingHorizontal: 24, width: '100%', alignItems: 'center' },
               isLawnDetected ? { backgroundColor: 'transparent' } : { backgroundColor: '#18201D', borderWidth: 2, borderColor: '#9FAFAA' }]}
@@ -478,6 +507,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontWeight: '600',
   },
+
+  errorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
   errorEmoji: { fontSize: 50, marginBottom: 10 },
   errorText: { color: 'white', fontSize: 24, fontWeight: 'bold' },
   errorSubtext: { color: '#ccc', textAlign: 'center', marginTop: 10 },
@@ -488,6 +525,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginTop: 20,
   },
+  resetText: { color: 'white', fontWeight: 'bold' },
+
   completeOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 20, 18, 0.6)',
