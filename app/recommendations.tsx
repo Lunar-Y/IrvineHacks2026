@@ -118,9 +118,10 @@ export default function RecommendationsScreen() {
           const current = panelTranslateY.value;
           const threshold = maxPanelDrag * 0.5;
           const shouldCollapse = current > threshold || e.velocityY > 150;
-          panelTranslateY.value = withSpring(shouldCollapse ? maxPanelDrag : 0, {
-            damping: 20,
-            stiffness: 300,
+          const toValue = shouldCollapse ? maxPanelDrag : 0;
+          panelTranslateY.value = withTiming(toValue, {
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
           });
         }),
     [maxPanelDrag, panelDragStart, panelTranslateY]
