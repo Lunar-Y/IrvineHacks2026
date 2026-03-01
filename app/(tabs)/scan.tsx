@@ -64,14 +64,6 @@ export default function ScanScreen() {
     window.location.reload();
   }, [permission?.granted]);
 
-  const handleRequestPermissions = async () => {
-    const cameraResult = await requestPermission();
-    if (cameraResult.granted) {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === 'granted');
-    }
-  };
-
   const handleScan = async () => {
     if (!cameraRef.current) return;
 
