@@ -15,8 +15,8 @@ import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
 // New Components
-import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
-import ScanningAnimation from '@/components/camera/ScanningAnimation';
+import LawnDetectionOverlay from '../../components/camera/LawnDetectionOverlay';
+import ScanningAnimation from '../../components/camera/ScanningAnimation';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',
@@ -204,27 +204,10 @@ export default function ScanScreen() {
             <TouchableOpacity
               style={styles.scanButton}
               onPress={handleScan}
-              disabled={currentScan.status === 'scanning' || currentScan.status === 'analyzing'}
+              disabled={currentScan.status !== 'idle'}
             >
               <Text style={styles.text}>Scan Lawn</Text>
             </TouchableOpacity>
-
-            {locationPermission === false && (
-              <View style={styles.locationPrompt}>
-                <Text style={styles.locationText}>
-                  Enable location so we can tailor recommendations to your area.
-                </Text>
-                <TouchableOpacity
-                  style={styles.locationButton}
-                  onPress={async () => {
-                    const { status } = await Location.requestForegroundPermissionsAsync();
-                    setLocationPermission(status === 'granted');
-                  }}
-                >
-                  <Text style={styles.locationButtonText}>Enable Location</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         )}
       </View>

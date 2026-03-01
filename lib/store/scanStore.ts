@@ -23,16 +23,29 @@ export interface PlantRecommendation {
   water_usage_liters_per_week?: number;
 }
 
+export type ScanStatus = 'idle' | 'scanning' | 'analyzing' | 'recommending' | 'complete' | 'error';
+
+export interface AssembledProfile {
+  coordinates: { lat: number; lng: number };
+  hardiness_zone?: string;
+  estimated_sun_exposure?: string;
+  estimated_microclimate?: string;
+  soil?: { soil_texture?: string; drainage?: string };
+  source?: string;
+}
+
 interface ScanStore {
   currentScan: {
     id: string | null;
     imageUri: string | null;
-    status: 'idle' | 'scanning' | 'analyzing' | 'complete' | 'error';
+    status: ScanStatus;
     recommendations: PlantRecommendation[];
+    assembledProfile: AssembledProfile | null;
   };
-  setScanStatus: (status: 'idle' | 'scanning' | 'analyzing' | 'complete' | 'error') => void;
+  setScanStatus: (status: ScanStatus) => void;
   setScanImage: (uri: string) => void;
   setRecommendations: (recs: PlantRecommendation[]) => void;
+  setAssembledProfile: (profile: AssembledProfile | null) => void;
   resetScan: () => void;
 }
 
@@ -42,9 +55,19 @@ export const useScanStore = create<ScanStore>((set) => ({
     imageUri: null,
     status: 'idle',
     recommendations: [],
+    assembledProfile: null,
   },
   setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
   setRecommendations: (recommendations) => set((state) => ({ currentScan: { ...state.currentScan, recommendations } })),
-  resetScan: () => set({ currentScan: { id: null, imageUri: null, status: 'idle', recommendations: [] } }),
+  setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),
+  resetScan: () => set({
+    currentScan: {
+      id: null,
+      imageUri: null,
+      status: 'idle',
+      recommendations: [],
+      assembledProfile: null,
+    },
+  }),
 }));
