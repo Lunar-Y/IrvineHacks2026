@@ -107,39 +107,40 @@ export default function ScanScreen() {
       setIsLawnDetected(isValidLawn);
 
       if (isValidLawn) {
-          setScanStatus('recommending');
+        setScanStatus('recommending');
 
-          // Assemble the final profile for the LLM
-          const fullProfile = {
-            ...profileResponse.data,
-            estimated_sun_exposure: visionData.estimated_sun_exposure || 'full_sun',
-            estimated_microclimate: visionData.estimated_microclimate || 'Unknown',
-            detected_existing_plants: visionData.detected_existing_plants || [],
-            detected_yard_features: visionData.detected_yard_features || [],
-            has_pets: false, // Default for prototype
-          };
+        // Assemble the final profile for the LLM
+        const fullProfile = {
+          ...profileResponse.data,
+          estimated_sun_exposure: visionData.estimated_sun_exposure || 'full_sun',
+          estimated_microclimate: visionData.estimated_microclimate || 'Unknown',
+          detected_existing_plants: visionData.detected_existing_plants || [],
+          detected_yard_features: visionData.detected_yard_features || [],
+          has_pets: false, // Default for prototype
+        };
 
-          // Default user preferences for the initial scan
-          const preferences = {
-            purpose: "A beautiful, sustainable garden that thrives in this specific spot",
-            avoid_invasive: true
-          };
+        // Default user preferences for the initial scan
+        const preferences = {
+          purpose: "A beautiful, sustainable garden that thrives in this specific spot",
+          avoid_invasive: true
+        };
 
-          // Invoke the Recommendation Brain (Claude + RAG)
-          const { data: recommendations, error: recError } = await supabase.functions.invoke('get-recommendations', {
-            body: { profile: fullProfile, preferences }
-          });
+        // Invoke the Recommendation Brain (Claude + RAG)
+        const { data: recommendations, error: recError } = await supabase.functions.invoke('get-recommendations', {
+          body: { profile: fullProfile, preferences }
+        });
 
-          if (recError) throw new Error(`Recommendations API: ${recError.message}`);
+        if (recError) throw new Error(`Recommendations API: ${recError.message}`);
 
-          // Update store with real AI results
-          setRecommendations(recommendations || []);
-          setAssembledProfile(fullProfile);
+        // Update store with real AI results
+        setRecommendations(recommendations || []);
+        setAssembledProfile(fullProfile);
 
-          // Navigate directly to recommendations as intended in the flow
-          router.push('/recommendations');
+        // Navigate directly to recommendations as intended in the flow
+        router.push('/recommendations');
       }
-      setScanStatus('complete');    } catch (error: any) {
+      setScanStatus('complete');
+    } catch (error: any) {
       console.error('Scan failed:', error);
       // If your store has an error message field, store it there; otherwise just show generic
       // (Keeping this minimal to avoid store-method mismatches.)
@@ -511,13 +512,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
+
   errorEmoji: { fontSize: 50, marginBottom: 10 },
   errorText: { color: 'white', fontSize: 24, fontWeight: 'bold' },
   errorSubtext: { color: '#ccc', textAlign: 'center', marginTop: 10 },
@@ -547,6 +542,6 @@ const styles = StyleSheet.create({
   actionButton: {}, // Styles moved inline
   actionText: {}, // Styles moved inline
   secondaryText: {}, // Styles moved inline
-  resetText: { color: 'white', fontWeight: 'bold' },
+
   permissionText: { padding: 20, textAlign: 'center', fontSize: 18, marginBottom: 20 },
 });
