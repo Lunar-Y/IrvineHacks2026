@@ -42,8 +42,20 @@ export default function SplashScreen() {
     const unsubHydrate = useProfileStore.persist.onFinishHydration(() => {
       setIsHydrated(true);
     });
+    
+    // Failsafe: Force hydration state after 3 seconds if it hangs
+    const timeout = setTimeout(() => {
+      if (!isHydrated) {
+        console.warn('[Failsafe] Hydration timed out, forcing continue');
+        setIsHydrated(true);
+      }
+    }, 3000);
+
     setIsHydrated(useProfileStore.persist.hasHydrated());
-    return () => unsubHydrate();
+    return () => {
+      unsubHydrate();
+      clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -151,8 +163,8 @@ export default function SplashScreen() {
         </Animated.View>
 
         <Animated.View style={logoStyle}>
-          <Text style={styles.title}></Text>
-          <Text style={styles.tagline}></Text>
+          <Text style={styles.title}>GreenScape</Text>
+          <Text style={styles.tagline}>Future-Proof Your Flora</Text>
         </Animated.View>
 
         {/* Shimmer Loading Bar */}

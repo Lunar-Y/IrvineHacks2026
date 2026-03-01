@@ -36,12 +36,16 @@ export default function PlantDetailScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Hero image */}
+            {/* Hero image with failsafe */}
             {plant.image_url ? (
                 <Image
-                    source={{ uri: plant.image_url }}
+                    source={{ 
+                        uri: plant.image_url,
+                        headers: { 'User-Agent': 'GreenScape/1.0 (https://greenscape.app)' }
+                    }}
                     style={styles.heroImage}
                     resizeMode="cover"
+                    onError={() => console.warn(`[Failsafe] Image load failed for ${plant.common_name}`)}
                 />
             ) : (
                 <View style={[styles.heroImage, styles.heroPlaceholder]}>
@@ -90,7 +94,7 @@ export default function PlantDetailScreen() {
                     style={styles.ctaButton}
                     onPress={() => {
                         router.dismissAll();
-                        setTimeout(() => router.navigate(`/(tabs)/ar/${index}`), 50);
+                        setTimeout(() => router.navigate(`/(tabs)/ar/${parsedIndex}`), 50);
                     }}
                     activeOpacity={0.85}
                 >

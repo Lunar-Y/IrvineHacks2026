@@ -170,7 +170,15 @@ export default function PlantCard({
       <View ref={containerRef} style={styles.card}>
         <View style={styles.hero}>
           {plant.image_url ? (
-            <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
+            <Image 
+              source={{ 
+                uri: plant.image_url,
+                headers: { 'User-Agent': 'GreenScape/1.0 (https://greenscape.app)' }
+              }} 
+              style={styles.heroImage} 
+              resizeMode="cover" 
+              onError={() => console.warn(`[Failsafe] Card image failed: ${plant.common_name}`)}
+            />
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
               <Text style={styles.placeholderEmoji}>🌵</Text>
