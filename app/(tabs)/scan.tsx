@@ -114,29 +114,40 @@ export default function ScanScreen() {
       setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
       setIsLawnDetected(isValidLawn);
 
-      // Offline-ish flow testing: if lawn valid, generate dummy deck + assembled profile
       if (isValidLawn) {
-        setScanStatus('recommending');
-        await delay(450);
+          setScanStatus('recommending');
 
-        const dummyDeck = buildDummyDeck(5);
-        const plants = stripDeckMetadata(dummyDeck);
-        setRecommendations(plants);
+          // Assemble the final profile for the LLM
+          const fullProfile = {
+            ...profileResponse.data,
+            estimated_sun_exposure: visionData.estimated_sun_exposure || 'full_sun',
+            estimated_microclimate: visionData.estimated_microclimate || 'Unknown',
+            detected_existing_plants: visionData.detected_existing_plants || [],
+            detected_yard_features: visionData.detected_yard_features || [],
+            has_pets: false, // Default for prototype
+          };
 
-        setAssembledProfile({
-          coordinates: { lat, lng },
-          hardiness_zone: '9b',
-          estimated_sun_exposure: 'full_sun',
-          estimated_microclimate: 'Warm south-facing yard with partial wind shielding.',
-          soil: { soil_texture: 'loamy', drainage: 'well' },
-          source: 'dummy_scan_profile',
-        });
+          // Default user preferences for the initial scan
+          const preferences = {
+            purpose: "A beautiful, sustainable garden that thrives in this specific spot",
+            avoid_invasive: true
+          };
 
-        // Do not automatically navigate; the user must press the "View Recommendations" button from the success overlay.
+          // Invoke the Recommendation Brain (Claude + RAG)
+          const { data: recommendations, error: recError } = await supabase.functions.invoke('get-recommendations', {
+            body: { profile: fullProfile, preferences }
+          });
+
+          if (recError) throw new Error(`Recommendations API: ${recError.message}`);
+
+          // Update store with real AI results
+          setRecommendations(recommendations || []);
+          setAssembledProfile(fullProfile);
+
+          // Navigate directly to recommendations as intended in the flow
+          router.push('/recommendations');
       }
-
-      setScanStatus('complete');
-    } catch (error: any) {
+      setScanStatus('complete');    } catch (error: any) {
       console.error('Scan failed:', error);
       // If your store has an error message field, store it there; otherwise just show generic
       // (Keeping this minimal to avoid store-method mismatches.)
