@@ -70,5 +70,5 @@ const styles = StyleSheet.create({
   confidenceText: {
     color: 'white',
     fontSize: 12,
-  }
+  },
 });

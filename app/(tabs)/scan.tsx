@@ -9,8 +9,8 @@ import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
 
 // New Components
-import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
-import ScanningAnimation from '@/components/camera/ScanningAnimation';
+import LawnDetectionOverlay from '../../components/camera/LawnDetectionOverlay';
+import ScanningAnimation from '../../components/camera/ScanningAnimation';
 
 const STATUS_LABELS: Record<string, string> = {
   scanning: 'Capturing lawn...',

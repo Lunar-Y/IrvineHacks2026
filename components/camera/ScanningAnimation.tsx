@@ -2,18 +2,19 @@ import React from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 
 interface ScanningAnimationProps {
-  status: 'scanning' | 'analyzing' | 'complete';
+  status: 'scanning' | 'analyzing' | 'recommending' | 'complete';
+  label?: string;
 }
 
-export default function ScanningAnimation({ status }: ScanningAnimationProps) {
-  const getMessage = () => {
-    switch (status) {
-      case 'scanning': return 'Capturing Lawn...';
-      case 'analyzing': return 'Environment is being analyzed...';
-      case 'complete': return 'Analysis Complete! 🌱';
-      default: return '';
-    }
-  };
+const LABELS: Record<string, string> = {
+  scanning: 'Capturing lawn...',
+  analyzing: 'Analyzing environment...',
+  recommending: 'Finding your plants...',
+  complete: 'Analysis Complete! 🌱',
+};
+
+export default function ScanningAnimation({ status, label = '' }: ScanningAnimationProps) {
+  const getMessage = () => label || LABELS[status] || '';
 
   return (
     <View style={styles.container}>
@@ -24,7 +25,7 @@ export default function ScanningAnimation({ status }: ScanningAnimationProps) {
           <Text style={styles.check}>✓</Text>
         )}
         <Text style={styles.message}>{getMessage()}</Text>
-        
+
         {status === 'analyzing' && (
           <Text style={styles.subtext}>Fetching weather, soil, and sun data</Text>
         )}
@@ -66,5 +67,5 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: '#2e7d32',
     fontWeight: 'bold',
-  }
+  },
 });
