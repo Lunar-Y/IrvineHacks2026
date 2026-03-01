@@ -113,7 +113,18 @@ export default function ScanScreen() {
       ]);
 
       if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
-      if (profileResponse.error) throw new Error(`Profile API: ${profileResponse.error.message}`);
+      if (profileResponse.error) {
+        const profileErrorData =
+          profileResponse.data && typeof profileResponse.data === 'object'
+            ? profileResponse.data as { error?: string; step?: string; details?: string }
+            : null;
+        const structuredDetails = profileErrorData
+          ? [profileErrorData.error, profileErrorData.step, profileErrorData.details].filter(Boolean).join(' | ')
+          : '';
+        throw new Error(
+          `Profile API: ${profileResponse.error.message}${structuredDetails ? ` (${structuredDetails})` : ''}`
+        );
+      }
 
       // Parse Vision Result
       let visionData: any;
