@@ -228,7 +228,7 @@ export default function ARNativeScreen() {
 
       {/* ── Top Bar ── */}
       <View style={[styles.topBar, { top: Math.max(insets.top, 14) }]} pointerEvents="box-none">
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/scan')} style={styles.backButton}>
           <FontAwesome name="chevron-left" size={16} color="#fff" style={{ marginRight: 6 }} />
           <Text style={styles.buttonText}>Exit AR</Text>
         </TouchableOpacity>

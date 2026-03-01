@@ -30,6 +30,7 @@ export default function TabLayout() {
         tabBarStyle: { backgroundColor: '#18201D', borderTopColor: '#2F6B4F' },
       }}>
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="ar/[id]" options={{ href: null, headerShown: false }} />
       <Tabs.Screen
         name="scan"
         options={{

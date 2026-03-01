@@ -88,7 +88,10 @@ export default function PlantDetailScreen() {
             <View style={[styles.ctaContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
                 <TouchableOpacity
                     style={styles.ctaButton}
-                    onPress={() => router.push(`/ar/native/${index}`)}
+                    onPress={() => {
+                        router.dismissAll();
+                        setTimeout(() => router.replace(`/(tabs)/ar/${index}`), 50);
+                    }}
                     activeOpacity={0.85}
                 >
                     <FontAwesome name="cube" size={20} color="#F5F7F6" />
