@@ -12,6 +12,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useScanStore } from '@/lib/store/scanStore';
 import { getModelForArchetype } from '@/lib/ar/modelMapping';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import RecommendationsOverlay from '@/components/recommendations/RecommendationsOverlay';
 
 let viro: any = null;
 try { viro = require('@reactvision/react-viro'); } catch { }
@@ -177,7 +178,7 @@ export default function ARNativeScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
 
-  const { currentScan } = useScanStore();
+  const { currentScan, incrementPlacedPlant, resetScan, clearPlacedPlants, placedPlantCounts } = useScanStore();
   const recommendations = currentScan.recommendations;
 
   const activePlantIndex = parseInt(id ?? '0', 10);
@@ -188,8 +189,16 @@ export default function ARNativeScreen() {
   const [mountViro, setMountViro] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [canPlace, setCanPlace] = useState(false);
-  const [plantCount, setPlantCount] = useState(0);
+  // Optional local tracking, but global counts reflect everywhere
+  const totalPlacedCount = Object.values(placedPlantCounts).reduce((acc, c) => acc + c, 0);
   const [hint, setHint] = useState<string | null>(null);
+
+  const [showDeck, setShowDeck] = useState(false);
+
+  // Every time the user navigates into AR for a particular plant ID, hide the deck and return to camera controls
+  useEffect(() => {
+    setShowDeck(false);
+  }, [id]);
 
   const [placeFn, setPlaceFn] = useState<(() => void) | null>(null);
 
@@ -213,7 +222,7 @@ export default function ARNativeScreen() {
   };
 
   const onPlaced = () => {
-    setPlantCount(c => c + 1);
+    incrementPlacedPlant(selectedArchetype);
     setHint('🌱 Placed!');
     setTimeout(() => setHint(null), 1500);
   };
@@ -252,42 +261,59 @@ export default function ARNativeScreen() {
       )}
 
       {/* ── Top Bar ── */}
-      <View style={[styles.topBar, { top: Math.max(insets.top, 14) }]} pointerEvents="box-none">
-        <TouchableOpacity
-          onPress={() => router.navigate('/(tabs)/scan')}
-          style={styles.backButton}
-        >
-          <FontAwesome name="chevron-left" size={16} color="#fff" style={{ marginRight: 6 }} />
-          <Text style={styles.buttonText}>Back</Text>
-        </TouchableOpacity>
+      {!showDeck && (
+        <View style={[styles.topBar, { top: Math.max(insets.top, 14) }]} pointerEvents="box-none">
+          <TouchableOpacity
+            onPress={() => setShowDeck(true)}
+            style={styles.backButton}
+          >
+            <FontAwesome name="chevron-left" size={16} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.buttonText}>Back</Text>
+          </TouchableOpacity>
 
-        {plantCount > 0 ? (
-          <View style={styles.statusPill}>
-            <Text style={styles.statusText}>{`${plantCount} placed`}</Text>
-          </View>
-        ) : <View />}
-      </View>
+          {totalPlacedCount > 0 ? (
+            <View style={styles.statusPill}>
+              <Text style={styles.statusText}>{`${totalPlacedCount} placed`}</Text>
+            </View>
+          ) : <View />}
+        </View>
+      )}
 
       {/* ── Hint HUD ── */}
-      <View style={styles.centerHud} pointerEvents="none">
-        {hint ? (
-          <Text style={styles.centerHudText}>{hint}</Text>
-        ) : (
-          isReady && <Text style={styles.centerHudText}>Point at the ground to place</Text>
-        )}
-      </View>
+      {!showDeck && (
+        <View style={styles.centerHud} pointerEvents="none">
+          {hint ? (
+            <Text style={styles.centerHudText}>{hint}</Text>
+          ) : (
+            isReady && <Text style={styles.centerHudText}>Point at the ground to place</Text>
+          )}
+        </View>
+      )}
 
       {/* ── Bottom Controls ── */}
-      <View style={[styles.bottomControls, { paddingBottom: Math.max(insets.bottom, 20) }]} pointerEvents="box-none">
-        <TouchableOpacity
-          style={[styles.placeButton, (!isReady || !canPlace) && styles.placeButtonDisabled]}
-          onPress={() => placeFn?.()}
-          disabled={!isReady || !canPlace}
-        >
-          <FontAwesome name="plus" size={20} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.placeButtonText}>Place Here</Text>
-        </TouchableOpacity>
-      </View>
+      {!showDeck && (
+        <View style={[styles.bottomControls, { paddingBottom: Math.max(insets.bottom, 20) }]} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[styles.placeButton, (!isReady || !canPlace) && styles.placeButtonDisabled]}
+            onPress={() => placeFn?.()}
+            disabled={!isReady || !canPlace}
+          >
+            <FontAwesome name="plus" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.placeButtonText}>Place Here</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Recommendations Overlay (When sliding back up) ── */}
+      {showDeck && (
+        <RecommendationsOverlay
+          onRequestRescan={() => {
+            resetScan();
+            clearPlacedPlants();
+            router.navigate('/(tabs)/scan');
+          }}
+        />
+      )}
     </View>
   );
 }
