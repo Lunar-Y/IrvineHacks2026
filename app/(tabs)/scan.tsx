@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Platform }
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
+import { useIsFocused } from '@react-navigation/native';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
@@ -36,8 +37,17 @@ export default function ScanScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [showRecommendationsOverlay, setShowRecommendationsOverlay] = useState(false);
 
+  const isFocused = useIsFocused();
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations, resetScan } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
+
+  // Auto-resume recommendations view if state persists but component unmounted
+  useEffect(() => {
+    if (currentScan.status === 'idle' && currentScan.recommendations?.length > 0) {
+      setShowRecommendationsOverlay(true);
+      setIsLawnDetected(true); // Persist green overlay lines if tracking is lost
+    }
+  }, [currentScan.status, currentScan.recommendations]);
 
   // Try to read existing location permission on mount (no prompt yet)
   useEffect(() => {
@@ -271,19 +281,21 @@ export default function ScanScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.cameraContainer}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing="back"
-          onCameraReady={() => {
-            setCameraReady(true);
-          }}
-          onMountError={(event) => {
-            const message = event?.message || 'Camera failed to mount.';
-            setScanError(message);
-            setScanStatus('error');
-          }}
-        />
+        {isFocused && (
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing="back"
+            onCameraReady={() => {
+              setCameraReady(true);
+            }}
+            onMountError={(event) => {
+              const message = event?.message || 'Camera failed to mount.';
+              setScanError(message);
+              setScanStatus('error');
+            }}
+          />
+        )}
 
         {/* AR-style Viewfinder Brackets */}
         {(currentScan.status !== 'complete' && currentScan.status !== 'error' && !showRecommendationsOverlay) && (

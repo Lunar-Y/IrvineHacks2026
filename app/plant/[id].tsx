@@ -90,7 +90,7 @@ export default function PlantDetailScreen() {
                     style={styles.ctaButton}
                     onPress={() => {
                         router.dismissAll();
-                        setTimeout(() => router.replace(`/(tabs)/ar/${index}`), 50);
+                        setTimeout(() => router.navigate(`/(tabs)/ar/${index}`), 50);
                     }}
                     activeOpacity={0.85}
                 >
