@@ -33,6 +33,7 @@ export const MOCK_RECOMMENDATIONS: PlantRecommendation[] = [
         model_archetype: 'flowering_shrub',
         care_difficulty: 'easy',
         image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Lavandula_angustifolia_%27Hidcote%27_2.jpg/800px-Lavandula_angustifolia_%27Hidcote%27_2.jpg',
+        model_asset: require('../../assets/models/maple_tree.glb'),
     },
     {
         common_name: 'California Sagebrush',

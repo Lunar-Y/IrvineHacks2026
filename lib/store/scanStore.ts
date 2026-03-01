@@ -28,6 +28,7 @@ export interface PlantRecommendation {
   water_usage_liters_per_week?: number;
   image_url?: string;
   care_difficulty?: 'easy' | 'moderate' | 'hard';
+  model_asset?: any;
 }
 
 interface ScanStore {

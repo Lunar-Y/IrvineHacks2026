@@ -11,7 +11,7 @@ import {
   Animated 
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useScanStore } from '@/lib/store/scanStore';
+import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import PlantCard from '@/components/plants/PlantCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,12 +25,27 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // ─────────────────────────────────────────────────────────────────────
 function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
   if (!viro) return null;
-  const { ViroARScene, ViroAmbientLight, ViroBox, ViroNode, ViroCamera, ViroConstants, ViroText } = viro;
+  const { 
+    ViroARScene, 
+    ViroAmbientLight,
+    ViroDirectionalLight, 
+    ViroBox, 
+    ViroNode, 
+    ViroCamera, 
+    ViroConstants, 
+    ViroText,
+    Viro3DObject 
+  } = viro;
 
   const sceneRef = useRef<any>(null);
-  const [plants, setPlants] = useState<Array<{ id: number; plantIndex: number; pos: [number, number, number] }>>([]);
+  const [plants, setPlants] = useState<Array<{ 
+    id: number; 
+    plantIndex: number; 
+    pos: [number, number, number];
+    asset?: any;
+  }>>([]);
+  
   const [isTracking, setIsTracking] = useState(false);
-
   const hasPreview = isTracking;
 
   const onTrackingUpdated = (state: number) => {
@@ -41,7 +56,7 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
     }
   };
 
-  const placePlant = async (plantIndex: number) => {
+  const placePlant = async (plantIndex: number, plantModelAsset?: any) => {
     if (!sceneRef.current || !isTracking) return;
     try {
       const orientation = await sceneRef.current.getCameraOrientationAsync();
@@ -49,11 +64,11 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       const forward = orientation.forward;
       
       const dropPos: [number, number, number] = [
-        pos[0] + forward[0] * 1.3,
-        pos[1] + forward[1] * 1.3 - 0.25, 
-        pos[2] + forward[2] * 1.3,
+        pos[0] + forward[0] * 1.5,
+        pos[1] + forward[1] * 1.5 - 0.5, // Drop slightly lower for models
+        pos[2] + forward[2] * 1.5,
       ];
-      setPlants((prev) => [...prev, { id: Date.now(), plantIndex, pos: dropPos }]);
+      setPlants((prev) => [...prev, { id: Date.now(), plantIndex, pos: dropPos, asset: plantModelAsset }]);
     } catch (err) {
       console.warn('Could not project placement:', err);
     }
@@ -65,7 +80,11 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
 
   return (
     <ViroARScene ref={sceneRef} onTrackingUpdated={onTrackingUpdated}>
-      <ViroAmbientLight color="#ffffff" intensity={500} />
+      {/* Base ambient light so textures are visible */}
+      <ViroAmbientLight color="#ffffff" intensity={300} />
+      
+      {/* Directional light to cast some shadows and highlight 3D geometry */}
+      <ViroDirectionalLight color="#ffffff" direction={[0, -1, -0.2]} intensity={800} />
 
       {/* Camera-locked preview ring */}
       <ViroCamera position={[0, 0, 0]} active={true}>
@@ -79,11 +98,22 @@ function PlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       {/* Deployed plants in World Space */}
       {plants.map((p) => (
         <ViroNode key={p.id} position={p.pos}>
-          {/* Temporary generic box until we load real 3D assets */}
-          <ViroBox scale={[0.2, 0.2, 0.2]} />
+          {p.asset ? (
+            <Viro3DObject
+              source={p.asset}
+              position={[0, 0, 0]}
+              scale={[1, 1, 1]} // Assuming the imported .glb is reasonable scale, we can tune this
+              type="GLB"
+              onError={(e: any) => console.log('3D Object Load Error:', e)}
+            />
+          ) : (
+            /* Fallback generic box if no model asset exists for this recommendation */
+            <ViroBox scale={[0.2, 0.2, 0.2]} />
+          )}
+          
           <ViroText 
             text={`Plant #${p.plantIndex}`}
-            position={[0, 0.15, 0]}
+            position={[0, 0.5, 0]}
             scale={[0.1, 0.1, 0.1]}
             style={styles.arText}
           />
@@ -125,7 +155,7 @@ export default function ARNativeScreen() {
   });
 
   // Communication refs
-  const placeFnRef = useRef<((idx: number) => void) | null>(null);
+  const placeFnRef = useRef<((idx: number, asset?: any) => void) | null>(null);
 
   // ── Drag & Drop State ──
   const pan = useRef(new Animated.ValueXY()).current;
@@ -160,7 +190,8 @@ export default function ARNativeScreen() {
 
         // If dragged high enough up the screen (-150px), count as a DROP in AR
         if (gestureState.dy < -150 && isReady && placeFnRef.current) {
-          placeFnRef.current(activePlantIndex);
+          const activePlant = recommendations[activePlantIndex];
+          placeFnRef.current(activePlantIndex, activePlant?.model_asset);
           setPlantCount((c) => c + 1);
         }
 
@@ -178,7 +209,8 @@ export default function ARNativeScreen() {
 
   const handleTapPlace = () => {
     if (placeFnRef.current && isReady) {
-      placeFnRef.current(activePlantIndex);
+      const activePlant = recommendations[activePlantIndex];
+      placeFnRef.current(activePlantIndex, activePlant?.model_asset);
       setPlantCount((c) => c + 1);
     }
   };
