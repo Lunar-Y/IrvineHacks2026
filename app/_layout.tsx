@@ -17,7 +17,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -62,10 +62,11 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
+        <Stack initialRouteName="index">
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          {/* Part 4: Recommendations sheet slides up over the camera tab */}
           <Stack.Screen
             name="recommendations"
             options={{ presentation: 'transparentModal', headerShown: false, animation: 'slide_from_bottom' }}
@@ -74,7 +75,6 @@ function RootLayoutNav() {
             name="ar-demo"
             options={{ headerShown: false }}
           />
-          {/* Part 4: Plant detail modal */}
           <Stack.Screen
             name="plant/[id]"
             options={{ presentation: 'modal', headerShown: false }}
