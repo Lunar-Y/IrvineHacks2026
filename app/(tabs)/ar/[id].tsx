@@ -58,13 +58,6 @@ function computeGroundHit(
   };
 }
 
-interface PlacedItem {
-  id: number;
-  pos: [number, number, number];
-  source: any;
-  scale: [number, number, number];
-}
-
 // ─────────────────────────────────────────────────────────────────────
 // IN-ROOM AR SCENE
 // ─────────────────────────────────────────────────────────────────────
@@ -81,7 +74,7 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
 
   const sceneRef = useRef<any>(null);
   const [isTracking, setIsTracking] = useState(false);
-  const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
+  const { placedItems, addPlacedItem } = useScanStore();
   const [previewPos, setPreviewPos] = useState<[number, number, number] | null>(null);
   const [previewValid, setPreviewValid] = useState(false);
 
@@ -112,14 +105,12 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
 
     // Get the currently selected model from parent
     const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
-    const model = getModelForArchetype(archetype);
 
-    setPlacedItems(prev => [...prev, {
+    addPlacedItem({
       id: Date.now(),
       pos: [...previewPos] as [number, number, number],
-      source: model.source,
-      scale: model.scale,
-    }]);
+      archetype,
+    });
     arSceneNavigator?.viroAppProps?.onPlaced?.();
   };
 
@@ -144,7 +135,7 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       <ViroDirectionalLight color="#ffffff" direction={[0, -1, -0.2]} intensity={800} />
 
       {/* LIVE PREVIEW — ghost of currently selected model */}
-      {previewValid && previewPos && (
+      {(previewValid && previewPos && !arSceneNavigator?.viroAppProps?.showDeck) && (
         <ViroNode position={previewPos} opacity={0.5}>
           <Viro3DObject
             source={previewModel.source}
@@ -155,17 +146,20 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       )}
 
       {/* PLACED ITEMS */}
-      {placedItems.map(item => (
-        <ViroNode key={item.id} position={item.pos}>
-          <Viro3DObject
-            source={item.source}
-            position={[0, 0, 0]}
-            scale={item.scale}
-            type="GLB"
-            onError={(e: any) => console.log('3D Object Load Error:', e)}
-          />
-        </ViroNode>
-      ))}
+      {placedItems.map(item => {
+        const itemModel = getModelForArchetype(item.archetype);
+        return (
+          <ViroNode key={item.id} position={item.pos}>
+            <Viro3DObject
+              source={itemModel.source}
+              position={[0, 0, 0]}
+              scale={itemModel.scale}
+              type="GLB"
+              onError={(e: any) => console.log('3D Object Load Error:', e)}
+            />
+          </ViroNode>
+        );
+      })}
     </ViroARScene>
   );
 }
@@ -178,7 +172,7 @@ export default function ARNativeScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
 
-  const { currentScan, incrementPlacedPlant, resetScan, clearPlacedPlants, placedPlantCounts } = useScanStore();
+  const { currentScan, resetScan, clearPlacedPlants, placedPlantCounts } = useScanStore();
   const recommendations = currentScan.recommendations;
 
   const activePlantIndex = parseInt(id ?? '0', 10);
@@ -222,7 +216,6 @@ export default function ARNativeScreen() {
   };
 
   const onPlaced = () => {
-    incrementPlacedPlant(selectedArchetype);
     setHint('🌱 Placed!');
     setTimeout(() => setHint(null), 1500);
   };
@@ -251,6 +244,7 @@ export default function ARNativeScreen() {
             onAimTooHigh: showAimTooHigh,
             onPlaced,
             selectedArchetype,
+            showDeck,
             _onTrackingReady: setIsReady,
             onPreviewValid: setCanPlace,
           }}

@@ -41,6 +41,12 @@ export interface AssembledProfile {
   source?: string;
 }
 
+export interface PlacedItemData {
+  id: number;
+  archetype: string;
+  pos: [number, number, number];
+}
+
 interface ScanStore {
   currentScan: {
     id: string | null;
@@ -56,7 +62,8 @@ interface ScanStore {
   resetScan: () => void;
 
   placedPlantCounts: Record<string, number>;
-  incrementPlacedPlant: (archetype: string) => void;
+  placedItems: PlacedItemData[];
+  addPlacedItem: (item: PlacedItemData) => void;
   clearPlacedPlants: () => void;
 }
 
@@ -83,11 +90,13 @@ export const useScanStore = create<ScanStore>((set) => ({
   }),
 
   placedPlantCounts: {},
-  incrementPlacedPlant: (archetype: string) => set((state) => ({
+  placedItems: [],
+  addPlacedItem: (item) => set((state) => ({
+    placedItems: [...state.placedItems, item],
     placedPlantCounts: {
       ...state.placedPlantCounts,
-      [archetype]: (state.placedPlantCounts[archetype] || 0) + 1,
+      [item.archetype]: (state.placedPlantCounts[item.archetype] || 0) + 1,
     }
   })),
-  clearPlacedPlants: () => set({ placedPlantCounts: {} }),
+  clearPlacedPlants: () => set({ placedPlantCounts: {}, placedItems: [] }),
 }));
