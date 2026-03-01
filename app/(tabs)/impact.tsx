@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ScrollView, View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { OverallScore } from '../../components/impact/OverallScore';
 import { CO2ImpactCard } from '../../components/impact/CO2ImpactCard';
 import { SquareMetricCard } from '../../components/impact/SquareMetricCard';
@@ -21,6 +22,14 @@ export default function ImpactScreen() {
       setMetricsFromMinimalPlants(recs);
     }
   }, [currentScan.recommendations, setMetricsFromMinimalPlants]);
+
+  // When user taps the Impact tab (navbar), show the statistics report immediately
+  useFocusEffect(
+    useCallback(() => {
+      setReportVisible(true);
+      return () => setReportVisible(false);
+    }, [])
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}>
