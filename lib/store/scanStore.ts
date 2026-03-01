@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { MOCK_RECOMMENDATIONS } from '@/lib/mock/mockRecommendations';
 
 export interface EnvironmentalProfile {
   coordinates: { lat: number; lng: number };
@@ -101,11 +100,10 @@ export const useScanStore = create<ScanStore>((set, get) => ({
   },
   setScanStatus: (status) => set((state) => ({ currentScan: { ...state.currentScan, status } })),
   setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setRecommendations: (_recs) => set((state) => ({
+  setRecommendations: (recs) => set((state) => ({
     currentScan: {
       ...state.currentScan,
-      // [DEMO_HARDCODED]: Force mock plants even if scan fails or returns different data
-      recommendations: MOCK_RECOMMENDATIONS
+      recommendations: recs
     }
   })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),

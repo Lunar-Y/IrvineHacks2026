@@ -89,6 +89,24 @@ async function getEmbedding(text: string, apiKey: string): Promise<number[]> {
 }
 
 // ---------------------------------------------------------------------------
+// HELPER: Wikipedia Image API
+// ---------------------------------------------------------------------------
+// Fetches the primary thumbnail image for a plant using its scientific name.
+async function getWikipediaImageUrl(scientificName: string): Promise<string | undefined> {
+  try {
+    const title = scientificName.trim().replace(/\s+/g, '_');
+    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.thumbnail?.source || data.originalimage?.source;
+    }
+  } catch (err) {
+    console.error(`Wikipedia image fetch failed for ${scientificName}:`, err);
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
 // HELPER: Dedalus LLM Chat Completion (Generation Step)
 // ---------------------------------------------------------------------------
 // Takes the RAG context (the matched plants) and the user's profile/preferences,
@@ -282,13 +300,28 @@ serve(async (req: Request) => {
       preferences,
       ragContext,
       dedalusApiKey
+    ) as any[];
+
+    // -----------------------------------------------------------------------
+    // STEP 4b: AUGMENT — Fetch real plant images from Wikipedia for the UI
+    // -----------------------------------------------------------------------
+    const enrichedRecommendations = await Promise.all(
+      recommendations.map(async (rec) => {
+        if (rec.scientific_name) {
+          const imageUrl = await getWikipediaImageUrl(rec.scientific_name);
+          if (imageUrl) {
+            rec.image_url = imageUrl;
+          }
+        }
+        return rec;
+      })
     );
 
     // -----------------------------------------------------------------------
     // STEP 5: Return successful response to the client
     // -----------------------------------------------------------------------
     return new Response(
-      JSON.stringify(recommendations),
+      JSON.stringify(enrichedRecommendations),
       {
         status: 200,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

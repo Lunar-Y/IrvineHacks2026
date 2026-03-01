@@ -75,13 +75,6 @@ export default function ScanScreen() {
   const handleScan = async () => {
     if (!cameraRef.current || captureInProgress) return;
 
-    // [DEMO_HARDCODED]: Resume results instantly if we already have mock 
-    // recommendations to speed up the presentation flow.
-    if (currentScan.recommendations.length > 0) {
-      setShowRecommendationsOverlay(true);
-      return;
-    }
-
     try {
       if (!canStartScan) {
         throw new Error('Camera is still initializing. Please wait one second and try again.');

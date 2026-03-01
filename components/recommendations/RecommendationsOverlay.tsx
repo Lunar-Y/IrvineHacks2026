@@ -88,19 +88,6 @@ export default function RecommendationsOverlay({
   }, [recommendations]);
 
   useEffect(() => {
-    /**
-     * CURRENT DUMMY BEHAVIOR:
-     * - This screen consumes dummy-backed normalized recommendations.
-     *
-     * FUTURE API WIRING STEPS:
-     * FUTURE_INTEGRATION: Swap this with validated backend payload mapping.
-     *
-     * VALIDATION/BACKFILL EXPECTATIONS:
-     * FUTURE_INTEGRATION: Keep min-count and de-dupe in the normalization layer.
-     *
-     * FAILURE HANDLING AND ANALYTICS HOOKS TO ADD LATER:
-     * FUTURE_INTEGRATION: Track deck impressions and detail-open CTR.
-     */
     setDeckItems(buildDummyDeck(5, recommendations));
     // When syncing with real recommendations, reset or set to initial.
     if (!lastHorizontalIndex) setCurrentIndex(0);
