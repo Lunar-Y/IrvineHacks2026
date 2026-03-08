@@ -1,11 +1,11 @@
-# LawnLens — AI-Powered Lawn Scanning & AR Plant Recommendation App
+# GreenScape — AI-Powered Lawn Scanning & AR Plant Recommendation App
 ## Gemini Project Context File
 
 ---
 
 ## Project Overview
 
-You are helping build **LawnLens**, a mobile application that scans a user's lawn using their phone camera, aggregates environmental and soil data from multiple free APIs, uses AI to recommend the best plants for that specific yard, and renders those plants in Augmented Reality at their mature size. Additional features include a week-by-week care schedule adapted to local weather forecasts and a where-to-buy layer using nearby nurseries and online retailers.
+You are helping build **GreenScape**, a mobile application that scans a user's lawn using their phone camera, aggregates environmental and soil data from multiple free APIs, uses AI to recommend the best plants for that specific yard, and renders those plants in Augmented Reality at their mature size. Additional features include a week-by-week care schedule adapted to local weather forecasts and a where-to-buy layer using nearby nurseries and online retailers.
 
 The app must be built within **one week** by a small team (treat as 1–2 developers). Prioritize free tools and APIs. Paid services are acceptable only where no free alternative exists, and must be flagged clearly.
 
@@ -525,7 +525,7 @@ Data is calculated client-side using per-plant constants returned by the LLM rec
 *Overall Impact Score*
 - A single "Yard Health Score" from 0–100 combining carbon, water efficiency, biodiversity, and native species ratio
 - Color coded: 0–40 red, 41–70 amber, 71–100 green
-- Shareable card: "My LawnLens yard scores 84/100 for environmental impact 🌿" with a stylized graphic for social sharing via `expo-sharing`
+- Shareable card: "My GreenScape yard scores 84/100 for environmental impact 🌿" with a stylized graphic for social sharing via `expo-sharing`
 
 **Behavior notes for implementation:**
 - All calculations are deterministic from the LLM-returned `environmental_data` fields — no additional API calls needed
@@ -659,4 +659,4 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 
 ---
 
-*This document reflects the full product design and technical architecture of LawnLens as of initial planning. Update this file as decisions change during development.*
+*This document reflects the full product design and technical architecture of GreenScape as of initial planning. Update this file as decisions change during development.*

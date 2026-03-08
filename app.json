@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "IrvineHacks2026",
-    "slug": "IrvineHacks2026",
+    "name": "GreenScape",
+    "slug": "GreenScape",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "irvinehacks2026",
+    "scheme": "greenscape",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -24,7 +24,7 @@
           "arkit"
         ]
       },
-      "bundleIdentifier": "com.anonymous.IrvineHacks2026"
+      "bundleIdentifier": "com.greenscape.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +34,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.IrvineHacks2026",
+      "package": "com.greenscape.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.INTERNET"

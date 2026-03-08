@@ -68,7 +68,12 @@ function RootLayoutNav() {
           {/* Part 4: Recommendations sheet slides up over the camera tab */}
           <Stack.Screen
             name="recommendations"
-            options={{ presentation: 'transparentModal', headerShown: false, animation: 'slide_from_bottom' }}
+            options={{
+              presentation: 'transparentModal',
+              headerShown: false,
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
+            }}
           />
           <Stack.Screen
             name="ar-demo"

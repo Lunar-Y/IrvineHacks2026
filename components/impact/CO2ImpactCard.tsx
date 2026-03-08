@@ -11,9 +11,9 @@ interface Props {
 function CO2Icon() {
     return (
         <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" accessibilityLabel="co2-icon">
-            <Path d="M3.5 10.5C3.5 8.4 5.2 6.7 7.3 6.7C8.2 5 9.8 4 11.7 4C14.5 4 16.8 6.3 16.8 9.1C16.8 11.9 14.5 14.2 11.7 14.2H7.8" stroke={Colors.lawnLens.secondary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-            <Path d="M7.8 15.5V9.8" stroke={Colors.lawnLens.secondary} strokeWidth={1.8} strokeLinecap="round" />
-            <Path d="M5.8 11.8L7.8 9.8L9.8 11.8" stroke={Colors.lawnLens.secondary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M3.5 10.5C3.5 8.4 5.2 6.7 7.3 6.7C8.2 5 9.8 4 11.7 4C14.5 4 16.8 6.3 16.8 9.1C16.8 11.9 14.5 14.2 11.7 14.2H7.8" stroke={Colors.greenScape.secondary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            <Path d="M7.8 15.5V9.8" stroke={Colors.greenScape.secondary} strokeWidth={1.8} strokeLinecap="round" />
+            <Path d="M5.8 11.8L7.8 9.8L9.8 11.8" stroke={Colors.greenScape.secondary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
     );
 }
@@ -33,13 +33,13 @@ function SCurve({ hasData }: { hasData: boolean }) {
         <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" testID="co2-s-curve">
             <Path
                 d={path}
-                stroke={Colors.lawnLens.secondary}
+                stroke={Colors.greenScape.secondary}
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
             />
-            <Circle cx={dotX} cy={dotY} r={3.5} fill={Colors.lawnLens.secondary} testID="co2-endpoint-dot" />
+            <Circle cx={dotX} cy={dotY} r={3.5} fill={Colors.greenScape.secondary} testID="co2-endpoint-dot" />
         </Svg>
     );
 }
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         height: 180,
-        backgroundColor: Colors.lawnLens.cardSurface,
+        backgroundColor: Colors.greenScape.cardSurface,
         borderRadius: 16,
         padding: 20,
         marginBottom: 32,
@@ -80,13 +80,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        color: Colors.lawnLens.textPrimary,
+        color: Colors.greenScape.textPrimary,
         fontFamily: 'Inter-SemiBold',
         fontSize: 18,
         marginLeft: 8,
     },
     value: {
-        color: Colors.lawnLens.textPrimary,
+        color: Colors.greenScape.textPrimary,
         fontFamily: 'Sora-SemiBold',
         fontSize: 32,
         marginBottom: 8,
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     },
     subtext: {
         marginTop: 8,
-        color: Colors.lawnLens.textMuted,
+        color: Colors.greenScape.textMuted,
         fontFamily: 'Inter-Medium',
         fontSize: 12,
     },

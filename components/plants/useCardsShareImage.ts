@@ -10,8 +10,8 @@ export const useCardsShareImage = () => {
 
             const uri = await shareRef.current.capture();
             await Share.share({
-                title: 'My LawnLens Impact',
-                message: 'Check out the ecological impact of my LawnLens yard plan!',
+                title: 'My GreenScape Impact',
+                message: 'Check out the ecological impact of my GreenScape yard plan!',
                 url: uri, // iOS supports file URLs in share
             });
         } catch (error) {

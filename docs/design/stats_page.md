@@ -1,17 +1,17 @@
-# LawnLens — Impact Dashboard Design Constraints
+# GreenScape — Impact Dashboard Design Constraints
 
 **Version 1.0 (Wireframe Mode — No Data Populated)**
 
 ## Overview
 
-This document defines the visual structure, layout constraints, and design rules for the Impact Dashboard / Statistics Page of LawnLens.
+This document defines the visual structure, layout constraints, and design rules for the Impact Dashboard / Statistics Page of GreenScape.
 
 > **⚠️ Important:**
 > All statistic components will initially render as empty placeholders. No numerical data, graphs, or values are shown in this phase.
 > 
 > This document governs layout, spacing, and hierarchy only.
 > 
-> The statistics page exists within the broader LawnLens architecture defined in the core project context `lawnlens_context`.
+> The statistics page exists within the broader GreenScape architecture defined in the core project context `greenscape_context`.
 
 ## Page Structure (Strict Order)
 

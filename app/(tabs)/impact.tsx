@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { ScrollView, View, StyleSheet, Text } from 'react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OverallScore } from '../../components/impact/OverallScore';
 import { CO2ImpactCard } from '../../components/impact/CO2ImpactCard';
@@ -9,20 +9,6 @@ import { calculateImpact } from '../../lib/utils/impactMath';
 import { formatCount, formatHeatIndex, formatKg, formatLiters } from '../../lib/utils/impactFormat';
 import { useScanStore } from '../../lib/store/scanStore';
 import { groupPlacedPlantsByRecommendation, GroupedPlacedPlant } from '../../lib/utils/myPlants';
-
-const PROFILE_LABELS = {
-  drought_warrior: 'Drought Warrior',
-  eco_system_builder: 'Eco-System Builder',
-  urban_cooler: 'Urban Cooler',
-} as const;
-
-const METRIC_LABELS = {
-  water: 'Water Savings',
-  native: 'Native Species',
-  heat: 'Heat Reduction',
-  nitrogen: 'Nitrogen-Fixing',
-  co2: 'CO2 Sequestration',
-} as const;
 
 export default function ImpactScreen() {
   const insets = useSafeAreaInsets();
@@ -80,19 +66,6 @@ export default function ImpactScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}>
       <OverallScore score={metrics.overallScore} hasData={hasData} placeholder={emptyValue} />
-      {hasData ? (
-        <View style={styles.scoreMeta}>
-          <Text style={styles.profileText}>
-            Active profile: {PROFILE_LABELS[metrics.scoreProfile as keyof typeof PROFILE_LABELS] || 'Standard'}
-          </Text>
-          {metrics.scoreBreakdown.map((item) => (
-            <View key={item.metricKey} style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>{METRIC_LABELS[item.metricKey as keyof typeof METRIC_LABELS]}</Text>
-              <Text style={styles.breakdownValue}>{item.contribution.toFixed(2)} pts</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
 
       <CO2ImpactCard
         co2Kg={hasData ? formatKg(metrics.totalCarbonKg) : emptyValue}
@@ -118,7 +91,7 @@ export default function ImpactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.lawnLens.background,
+    backgroundColor: Colors.greenScape.background,
   },
   content: {
     paddingHorizontal: 20,
@@ -129,34 +102,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 16,
-  },
-  scoreMeta: {
-    marginTop: -16,
-    marginBottom: 32,
-    backgroundColor: Colors.lawnLens.cardSurface,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  profileText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: Colors.lawnLens.textPrimary,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  breakdownLabel: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: Colors.lawnLens.textMuted,
-  },
-  breakdownValue: {
-    fontFamily: 'Sora-SemiBold',
-    fontSize: 13,
-    color: Colors.lawnLens.textPrimary,
   },
 });

@@ -103,7 +103,7 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
       return;
     }
 
-    const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
+    const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'maple_tree';
     const scanState = useScanStore.getState();
     const activeIndex = scanState.activeRecommendationIndex;
     const activeRecommendation = scanState.getActiveRecommendation();
@@ -135,7 +135,7 @@ function SinglePlantScene({ arSceneNavigator }: { arSceneNavigator?: any }) {
   }, [isTracking, previewPos, previewValid, arSceneNavigator?.viroAppProps?.selectedArchetype]);
 
   // Get current preview model from parent
-  const previewArchetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
+  const previewArchetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'maple_tree';
   const previewModel = getModelForArchetype(previewArchetype);
 
   return (
@@ -200,7 +200,7 @@ export default function ARNativeScreen() {
   // Track the active plant in local state so swapping plants never causes navigation
   const [activePlantIndex, setActivePlantIndex] = useState(initialPlantIndex);
   const activePlant = recommendations[activePlantIndex];
-  const selectedArchetype = activePlant?.model_archetype || 'tree';
+  const selectedArchetype = activePlant?.model_archetype || 'maple_tree';
 
   const isFocused = useIsFocused();
   const [mountViro, setMountViro] = useState(false);

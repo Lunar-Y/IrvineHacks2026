@@ -1,4 +1,4 @@
-# LawnLens Part 2: Lawn Detection & Vision
+# GreenScape Part 2: Lawn Detection & Vision
 
 ## Role: Computer Vision Specialist
 **Goal:** Implement real-time lawn detection, camera interface, and initial visual scene analysis.

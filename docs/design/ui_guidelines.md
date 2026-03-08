@@ -1,16 +1,16 @@
-# LawnLens — Global UI Guidelines
+# GreenScape — Global UI Guidelines
 
 **Version 1.0 (Wireframe & Baseline Styling Phase)**
 
 ## Overview
 
-This document serves as the single source of truth for all foundational UI elements, layout rules, and aesthetic constraints across the LawnLens application. Any new screens or components should strictly inherit from this system.
+This document serves as the single source of truth for all foundational UI elements, layout rules, and aesthetic constraints across the GreenScape application. Any new screens or components should strictly inherit from this system.
 
 ---
 
 ## 1. Color System (Active: Option 2 — Forest & Sage Base)
 
-LawnLens uses a cool, nature-inspired dark mode palette. To ensure accessibility and visual hierarchy, components must adhere exactly to these token values.
+GreenScape uses a cool, nature-inspired dark mode palette. To ensure accessibility and visual hierarchy, components must adhere exactly to these token values.
 
 ### Surfaces & Structural
 - **Background:** `#0F1412` (Page root background)
@@ -33,7 +33,7 @@ LawnLens uses a cool, nature-inspired dark mode palette. To ensure accessibility
 
 ## 2. Typography System (Locked)
 
-LawnLens relies on two font families to separate data/hero elements from readable interface text. 
+GreenScape relies on two font families to separate data/hero elements from readable interface text. 
 
 - **Primary Font:** Inter (Functional text, labels, reading)
 - **Accent Font:** Sora (Large metrics, scores, display numbers)

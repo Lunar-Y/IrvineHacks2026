@@ -5,7 +5,7 @@ import ViewShot from 'react-native-view-shot';
 // The offscreen render content that goes into the ShareCard
 const ImpactContent = ({ metrics, totalPlants }: { metrics: any; totalPlants: number }) => (
     <View style={styles.contentContainer}>
-        <Text style={styles.title}>LawnLens</Text>
+        <Text style={styles.title}>GreenScape</Text>
         <Text style={styles.subtitle}>My yard's ecological impact</Text>
 
         <View style={styles.statsGrid}>

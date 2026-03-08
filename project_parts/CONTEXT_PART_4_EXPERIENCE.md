@@ -1,4 +1,4 @@
-# LawnLens Part 4: AR & User Experience
+# GreenScape Part 4: AR & User Experience
 
 ## Role: AR & UX Developer
 **Goal:** Build the interactive 3D placement, post-scan details, and final user impact metrics.
@@ -21,7 +21,7 @@
    - Calculate cumulative ecological impact for user's selected plants.
    - Show: Total CO2 sequestered, water savings vs grass, biodiversity score, urban heat reduction.
 5. **Share Card:**
-   - Use `react-native-view-shot` to produce "My LawnLens yard scores X/100" shareable graphic.
+   - Use `react-native-view-shot` to produce "My GreenScape yard scores X/100" shareable graphic.
 
 ### Key Files & Interfaces:
 - `components/plants/PlantCard.tsx`, `components/plants/PlantCardDragHandler.tsx`

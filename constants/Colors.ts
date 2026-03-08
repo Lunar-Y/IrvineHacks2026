@@ -1,4 +1,4 @@
-const lawnLensPalette = {
+const greenScapePalette = {
   background: '#0F1412',
   cardSurface: '#18201D',
   divider: '#FFFFFF1A',
@@ -12,7 +12,7 @@ const lawnLensPalette = {
 } as const;
 
 export default {
-  lawnLens: lawnLensPalette,
+  greenScape: greenScapePalette,
   light: {
     text: '#000',
     background: '#fff',

@@ -5,7 +5,7 @@
 --
 -- PURPOSE:
 --   This migration creates the core backend function used to power the RAG
---   (Retrieval-Augmented Generation) pipeline for LawnLens plant recommendations.
+--   (Retrieval-Augmented Generation) pipeline for GreenScape plant recommendations.
 --
 -- HOW IT WORKS:
 --   1. The client app (or a Supabase Edge Function) generates a 1536-dimension

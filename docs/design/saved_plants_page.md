@@ -83,7 +83,7 @@ This document details the UI layout for the Saved Plants screen, adapted to alig
 
 ---
 
-## 🎨 Color Token Map (LawnLens Forest & Sage)
+## 🎨 Color Token Map (GreenScape Forest & Sage)
 
 *   **Page Background (`BG`):** `#0F1412` *(Page root background)*
 *   **Surface/Cards (`Surface`):** `#18201D` *(Card Surface / Elevated Elements)*

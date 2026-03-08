@@ -1,4 +1,4 @@
-# LawnLens Part 3: The Environmental Brain
+# GreenScape Part 3: The Environmental Brain
 
 ## Role: Backend & Data Architect
 **Goal:** Build the robust data pipeline that maps raw environmental context and user preferences into highly accurate plant recommendations.

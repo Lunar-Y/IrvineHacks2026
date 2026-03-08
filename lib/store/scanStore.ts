@@ -104,7 +104,8 @@ export const useScanStore = create<ScanStore>((set, get) => ({
   setRecommendations: (_recs) => set((state) => ({
     currentScan: {
       ...state.currentScan,
-      // [DEMO_HARDCODED]: Force mock plants even if scan fails or returns different data
+      // [DEMO_HARDCODED]: Force curated plants even if scan fails or returns
+      // different data so plant cards/AR are deterministic for the demo.
       recommendations: MOCK_RECOMMENDATIONS
     }
   })),
