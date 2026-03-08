@@ -1,6 +1,6 @@
 # GreenScape 🌿 — AI-Powered Lawn Scanning & AR Plant Recommendation App
 
-![GreenScape Hero](https://github.com/user-attachments/assets/c8a2b5e2-6d2e-4f51-a96c-829d8a3a9b1c)
+![GreenScape Hero](assets/images/greenscape_hero.png)
 
 **GreenScape** is a next-generation gardening assistant that turns your phone into a horticultural powerhouse. By scanning your yard, gathering real-time environmental data, and leveraging state-of-the-art AI, GreenScape recommends the perfect plants for your specific microclimate and lets you visualize them in your yard using Augmented Reality.
 
