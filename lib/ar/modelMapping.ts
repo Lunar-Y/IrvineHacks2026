@@ -4,17 +4,13 @@
  * Maps the `model_archetype` field (from PlantRecommendation or LLM output)
  * to the correct local 3D model file.
  *
- * ARCHETYPE CATEGORIES:
- *   - 'tree' / 'small_tree' / 'medium_tree'  → maple_tree.glb  (default tree)
- *   - 'large_tree'                            → old_tree.glb    (bigger/older tree)
- *   - 'shrub' / 'evergreen_shrub' / 'flowering_shrub' / 'ornamental_grass' / 'groundcover'
- *                                             → shrub.glb       (bush/shrub)
- *   - 'flower' / 'perennial_flower' / 'climbing_vine'
- *                                             → calendula_flower.glb (flower)
+ * DEMO MAPPING (authoritative):
+ *   - 'maple_tree' -> maple_tree.glb
+ *   - 'shrub'      -> shrub.glb
+ *   - 'flower'     -> calendula_flower.glb
  *
  * SUPABASE STORAGE URLS (for runtime downloads if needed):
  *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/maple_tree.glb
- *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/old_tree.glb
  *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/shrub.glb
  *   https://tzewkyhnmctwpstwqnvq.supabase.co/storage/v1/object/public/plant-models/calendula_flower.glb
  */
@@ -22,12 +18,18 @@
 // Local asset requires (bundled with the app)
 const MODELS = {
     maple_tree: require('../../assets/models/maple_tree.glb'),
-    old_tree: require('../../assets/models/old_tree.glb'),
     shrub: require('../../assets/models/shrub.glb'),
     flower: require('../../assets/models/calendula_flower.glb'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
+
+function normalizeArchetype(archetype?: string): string {
+    return (archetype ?? '')
+        .toLowerCase()
+        .trim()
+        .replace(/[\s-]+/g, '_');
+}
 
 /**
  * Given a model_archetype string (from the LLM or database), return
@@ -38,46 +40,21 @@ export function getModelForArchetype(archetype?: string): {
     scale: [number, number, number];
     modelKey: ModelKey;
 } {
-    const normalized = (archetype ?? '').toLowerCase().trim();
+    const normalized = normalizeArchetype(archetype);
 
-    // Large / old trees
-    if (normalized.includes('large_tree') || normalized.includes('old_tree')) {
-        return { source: MODELS.old_tree, scale: [8, 8, 8], modelKey: 'old_tree' };
-    }
-
-    // Standard trees (default)
-    if (
-        normalized.includes('tree') ||
-        normalized.includes('small_tree') ||
-        normalized.includes('medium_tree')
-    ) {
-        // Maple tree was already tuned to 0.06
+    if (normalized === 'maple_tree') {
         return { source: MODELS.maple_tree, scale: [0.06, 0.06, 0.06], modelKey: 'maple_tree' };
     }
 
-    // Flowers
-    if (
-        normalized.includes('flower') ||
-        normalized.includes('perennial') ||
-        normalized.includes('vine') ||
-        normalized.includes('climbing')
-    ) {
-        return { source: MODELS.flower, scale: [0.4, 0.4, 0.4], modelKey: 'flower' };
-    }
-
-    // Shrubs, bushes, grasses, groundcover
-    if (
-        normalized.includes('shrub') ||
-        normalized.includes('bush') ||
-        normalized.includes('grass') ||
-        normalized.includes('groundcover') ||
-        normalized.includes('evergreen') ||
-        normalized.includes('ornamental')
-    ) {
+    if (normalized === 'shrub') {
         return { source: MODELS.shrub, scale: [0.8, 0.8, 0.8], modelKey: 'shrub' };
     }
 
-    // Fallback: use height-based heuristic if no archetype matches
+    if (normalized === 'flower') {
+        return { source: MODELS.flower, scale: [0.4, 0.4, 0.4], modelKey: 'flower' };
+    }
+
+    // Fallback: keep a reliable tree model for unknown/missing archetypes.
     return { source: MODELS.maple_tree, scale: [0.06, 0.06, 0.06], modelKey: 'maple_tree' };
 }
 
@@ -89,12 +66,9 @@ export function getModelForArchetype(archetype?: string): {
  * archetype column yet.
  */
 export function inferArchetypeFromHeight(heightMeters: number): string {
-    if (heightMeters <= 0.3) return 'groundcover';
-    if (heightMeters <= 0.8) return 'perennial_flower';
-    if (heightMeters <= 1.5) return 'flowering_shrub';
-    if (heightMeters <= 4.0) return 'small_tree';
-    if (heightMeters <= 8.0) return 'medium_tree';
-    return 'large_tree';
+    if (heightMeters <= 0.8) return 'flower';
+    if (heightMeters <= 1.5) return 'shrub';
+    return 'maple_tree';
 }
 
 /**

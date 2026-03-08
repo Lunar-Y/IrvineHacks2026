@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { ScrollView, View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { OverallScore } from '../../components/impact/OverallScore';
@@ -11,20 +11,6 @@ import { calculateImpact } from '../../lib/utils/impactMath';
 import { formatCount, formatHeatIndex, formatKg, formatLiters } from '../../lib/utils/impactFormat';
 import { useScanStore } from '../../lib/store/scanStore';
 import { groupPlacedPlantsByRecommendation, GroupedPlacedPlant } from '../../lib/utils/myPlants';
-
-const PROFILE_LABELS = {
-  drought_warrior: 'Drought Warrior',
-  eco_system_builder: 'Eco-System Builder',
-  urban_cooler: 'Urban Cooler',
-} as const;
-
-const METRIC_LABELS = {
-  water: 'Water Savings',
-  native: 'Native Species',
-  heat: 'Heat Reduction',
-  nitrogen: 'Nitrogen-Fixing',
-  co2: 'CO2 Sequestration',
-} as const;
 
 export default function ImpactScreen() {
   const insets = useSafeAreaInsets();
@@ -91,19 +77,6 @@ export default function ImpactScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}>
       <OverallScore score={metrics.overallScore} hasData={hasData} placeholder={emptyValue} />
-      {hasData ? (
-        <View style={styles.scoreMeta}>
-          <Text style={styles.profileText}>
-            Active profile: {PROFILE_LABELS[metrics.scoreProfile as keyof typeof PROFILE_LABELS] || 'Standard'}
-          </Text>
-          {metrics.scoreBreakdown.map((item) => (
-            <View key={item.metricKey} style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>{METRIC_LABELS[item.metricKey as keyof typeof METRIC_LABELS]}</Text>
-              <Text style={styles.breakdownValue}>{item.contribution.toFixed(2)} pts</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
 
       <CO2ImpactCard
         co2Kg={hasData ? formatKg(metrics.totalCarbonKg) : emptyValue}
@@ -155,47 +128,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 16,
-  },
-  scoreMeta: {
-    marginTop: -16,
-    marginBottom: 32,
-    backgroundColor: Colors.greenScape.cardSurface,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  profileText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: Colors.greenScape.textPrimary,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  breakdownLabel: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: Colors.greenScape.textMuted,
-  },
-  breakdownValue: {
-    fontFamily: 'Sora-SemiBold',
-    fontSize: 13,
-    color: Colors.greenScape.textPrimary,
-  },
-  statisticsButton: {
-    marginTop: 24,
-    backgroundColor: '#2F6B4F',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  statisticsButtonText: {
-    color: '#F5F7F6',
-    fontSize: 16,
-    fontWeight: '700',
   },
 });

@@ -175,11 +175,9 @@ export default function RecommendationsOverlay({
       onRequestRescan();
       return;
     }
-    router.dismiss();
-    setTimeout(() => {
-      router.replace('/(tabs)/scan');
-    }, 0);
-  }, [isPanelAnimating, isReturningToScan, onRequestRescan, resetScan, router]);
+    // When the overlay is rendered as a stand-alone route, avoid implicit
+    // navigation back to scan via gestures or fallback route replacements.
+  }, [isPanelAnimating, isReturningToScan, onRequestRescan, resetScan]);
 
   const panelPanGesture = useMemo(
     () =>

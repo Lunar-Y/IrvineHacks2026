@@ -104,15 +104,9 @@ export const useScanStore = create<ScanStore>((set, get) => ({
   setScanStatus: (status) => set((state) => ({
     currentScan: {
       ...state.currentScan,
-      status,
-      ...(status === 'idle' ? { errorMessage: null } : {}),
-    },
-  })),
-  setScanImage: (uri) => set((state) => ({ currentScan: { ...state.currentScan, imageUri: uri } })),
-  setRecommendations: (recs) => set((state) => ({
-    currentScan: {
-      ...state.currentScan,
-      recommendations: recs
+      // [DEMO_HARDCODED]: Force curated plants even if scan fails or returns
+      // different data so plant cards/AR are deterministic for the demo.
+      recommendations: MOCK_RECOMMENDATIONS
     }
   })),
   setAssembledProfile: (assembledProfile) => set((state) => ({ currentScan: { ...state.currentScan, assembledProfile } })),

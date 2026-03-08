@@ -6,6 +6,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useScanStore, PlantRecommendation } from '@/lib/store/scanStore';
 import { supabase } from '@/lib/api/supabase';
 import { buildDummyDeck } from '@/lib/recommendations/deckBuilder';
+import { waitForPostScanDemoDelay } from '@/lib/demo/scanDelay';
 
 // New Components
 import LawnDetectionOverlay from '@/components/camera/LawnDetectionOverlay';
@@ -19,6 +20,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const STAGE_TIMEOUT_MS = 3000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Stage timed out')), timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
 
 /** Infer a short cause label from the error message for console logging. */
 function inferScanErrorCause(message: string): string | null {
@@ -52,12 +69,23 @@ export default function ScanScreen() {
   const [captureInProgress, setCaptureInProgress] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [showRecommendationsOverlay, setShowRecommendationsOverlay] = useState(false);
+  const [overlayRenderKey, setOverlayRenderKey] = useState(0);
 
   const isFocused = useIsFocused();
   const { currentScan, setScanStatus, setAssembledProfile, setRecommendations, setScanError: setStoreScanError, resetScan, clearPlacedPlants } = useScanStore();
   const cameraRef = useRef<CameraView>(null);
 
   // Removed auto-resume logic to ensure app starts on Scan Lawn page
+  useEffect(() => {
+    if (!isFocused) return;
+    if (currentScan.status !== 'idle') return;
+    if (currentScan.recommendations.length === 0) return;
+
+    // Reopen and remount the recommendations panel when returning to the Scan tab
+    // so it appears in the default expanded state.
+    setOverlayRenderKey((prev) => prev + 1);
+    setShowRecommendationsOverlay(true);
+  }, [isFocused, currentScan.status, currentScan.recommendations.length]);
 
 
   // Try to read existing location permission on mount (no prompt yet)
@@ -124,45 +152,81 @@ export default function ScanScreen() {
 
       setScanStatus('analyzing');
 
-      const location = await Location.getCurrentPositionAsync({});
-      const lat = location.coords.latitude;
-      const lng = location.coords.longitude;
+      let visionData: any = null;
+      let profileData: any = null;
+      let isValidLawn = true;
+      let aiConfidence = 0.85;
+      let resolvedSurfaceType: 'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown' = 'Vegetation';
 
-      const [visionResponse, profileResponse] = await Promise.all([
-        supabase.functions.invoke('analyze-frame', { body: { image: photo.base64 } }),
-        supabase.functions.invoke('assemble-profile', { body: { lat, lng } }),
-      ]);
-
-      if (visionResponse.error) {
-        const serverMessage = visionResponse.data && typeof visionResponse.data === 'object' && 'error' in visionResponse.data
-          ? (visionResponse.data as { error: string }).error
-          : visionResponse.error.message;
-        throw new Error(`Vision API: ${serverMessage}`);
-      }
-      if (profileResponse.error) {
-        const serverMessage = profileResponse.data && typeof profileResponse.data === 'object' && 'error' in profileResponse.data
-          ? (profileResponse.data as { error: string }).error
-          : profileResponse.error.message;
-        throw new Error(`Profile API: ${serverMessage}`);
-      }
-
-      // Parse Vision Result
-      let visionData: any;
       try {
-        visionData =
-          typeof visionResponse.data === 'string'
-            ? JSON.parse(visionResponse.data)
-            : visionResponse.data;
-      } catch {
-        throw new Error('Vision API: Invalid JSON response');
-      }
+        const stageAResult = await withTimeout(
+          (async () => {
+            const location = await Location.getCurrentPositionAsync({});
+            const lat = location.coords.latitude;
+            const lng = location.coords.longitude;
 
-      const coverage = visionData.soil_analysis?.coverage_percent || 0;
-      const aiConfidence = visionData.confidence ?? 0.85;
-      const isValidLawn = visionData.is_lawn === true || coverage > 40;
+            const [visionResponse, profileResponse] = await Promise.all([
+              supabase.functions.invoke('analyze-frame', { body: { image: photo.base64 } }),
+              supabase.functions.invoke('assemble-profile', { body: { lat, lng } }),
+            ]);
+
+            if (visionResponse.error) throw new Error(`Vision API: ${visionResponse.error.message}`);
+            if (profileResponse.error) {
+              const profileErrorData =
+                profileResponse.data && typeof profileResponse.data === 'object'
+                  ? profileResponse.data as { error?: string; step?: string; details?: string }
+                  : null;
+              const structuredDetails = profileErrorData
+                ? [profileErrorData.error, profileErrorData.step, profileErrorData.details].filter(Boolean).join(' | ')
+                : '';
+              throw new Error(
+                `Profile API: ${profileResponse.error.message}${structuredDetails ? ` (${structuredDetails})` : ''}`
+              );
+            }
+
+            let parsedVisionData: any;
+            try {
+              parsedVisionData =
+                typeof visionResponse.data === 'string'
+                  ? JSON.parse(visionResponse.data)
+                  : visionResponse.data;
+            } catch {
+              throw new Error('Vision API: Invalid JSON response');
+            }
+
+            const coverage = parsedVisionData.soil_analysis?.coverage_percent || 0;
+            const confidence = parsedVisionData.confidence ?? 0.85;
+            const validLawn = parsedVisionData.is_lawn === true || coverage > 40;
+            const surface: 'Vegetation' | 'Substrate' | 'Hardscape' | 'Unknown' =
+              parsedVisionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation';
+
+            return {
+              parsedVisionData,
+              profileData: profileResponse.data,
+              validLawn,
+              confidence,
+              surface,
+            };
+          })(),
+          STAGE_TIMEOUT_MS
+        );
+
+        visionData = stageAResult.parsedVisionData;
+        profileData = stageAResult.profileData;
+        isValidLawn = stageAResult.validLawn;
+        aiConfidence = stageAResult.confidence;
+        resolvedSurfaceType = stageAResult.surface;
+      } catch {
+        // Demo fallback: continue immediately if analysis/profile is slow or unavailable.
+        visionData = {};
+        profileData = { coordinates: { lat: 33.6846, lng: -117.8265 }, source: 'demo_fallback' };
+        isValidLawn = true;
+        aiConfidence = 0.85;
+        resolvedSurfaceType = 'Vegetation';
+      }
 
       setConfidence(aiConfidence);
-      setSurfaceType(visionData.soil_analysis?.type === 'loamy' ? 'Substrate' : 'Vegetation');
+      setSurfaceType(resolvedSurfaceType);
       setIsLawnDetected(isValidLawn);
 
       if (isValidLawn) {
@@ -170,7 +234,7 @@ export default function ScanScreen() {
 
         // Assemble the final profile for the LLM
         const fullProfile = {
-          ...profileResponse.data,
+          ...profileData,
           estimated_sun_exposure: visionData.estimated_sun_exposure || 'full_sun',
           estimated_microclimate: visionData.estimated_microclimate || 'Unknown',
           detected_existing_plants: visionData.detected_existing_plants || [],
@@ -185,16 +249,25 @@ export default function ScanScreen() {
         };
 
         // Invoke the Recommendation Brain (Claude + RAG)
-        const { data: recommendations, error: recError } = await supabase.functions.invoke('get-recommendations', {
-          body: { profile: fullProfile, preferences }
-        });
+        let recommendations: PlantRecommendation[] = [];
+        try {
+          const recResponse = await withTimeout(
+            supabase.functions.invoke('get-recommendations', { body: { profile: fullProfile, preferences } }),
+            STAGE_TIMEOUT_MS
+          );
+          if (recResponse.error) throw new Error(`Recommendations API: ${recResponse.error.message}`);
+          recommendations = Array.isArray(recResponse.data) ? recResponse.data : [];
+        } catch {
+          // Demo fallback: keep flow moving and let store lock to mock recommendations.
+          recommendations = [];
+        }
 
-        if (recError) throw new Error(`Recommendations API: ${recError.message}`);
-
-        // Update store with real AI results
+        // Update store with real AI results (demo store still locks to curated mock plants)
         setRecommendations(recommendations || []);
         setAssembledProfile(fullProfile);
 
+        // Keep a short deterministic loading period before showing recommendations.
+        await waitForPostScanDemoDelay();
         setScanStatus('idle');
         setShowRecommendationsOverlay(true);
         return;
@@ -438,6 +511,7 @@ export default function ScanScreen() {
 
       {showRecommendationsOverlay && (
         <RecommendationsOverlay
+          key={`recommendations-overlay-${overlayRenderKey}`}
           onRequestRescan={() => {
             resetScan();
             clearPlacedPlants();

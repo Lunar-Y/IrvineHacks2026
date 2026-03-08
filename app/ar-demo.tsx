@@ -128,7 +128,7 @@ const TreeScene = ({ arSceneNavigator }: { arSceneNavigator?: any }) => {
             return;
         }
         // Get the currently selected model from parent
-        const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
+        const archetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'maple_tree';
         const model = getModelForArchetype(archetype);
 
         setPlacedItems(prev => [...prev, {
@@ -145,7 +145,7 @@ const TreeScene = ({ arSceneNavigator }: { arSceneNavigator?: any }) => {
     }, [isTracking, previewPos, previewValid]);
 
     // Get current preview model from parent
-    const previewArchetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'tree';
+    const previewArchetype = arSceneNavigator?.viroAppProps?.selectedArchetype ?? 'maple_tree';
     const previewModel = getModelForArchetype(previewArchetype);
 
     return (

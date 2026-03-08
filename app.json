@@ -24,7 +24,7 @@
           "arkit"
         ]
       },
-      "bundleIdentifier": "com.anonymous.GreenScape"
+      "bundleIdentifier": "com.greenscape.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +34,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.GreenScape",
+      "package": "com.greenscape.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.INTERNET"
