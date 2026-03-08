@@ -1,6 +1,6 @@
 # GreenScape 🌿 — AI-Powered Lawn Scanning & AR Plant Recommendation App
 
-![GreenScape Hero](https://github.com/user-attachments/assets/c8a2b5e2-6d2e-4f51-a96c-829d8a3a9b1c)
+![GreenScape Hero](assets/images/greenscape_hero.jpg)
 
 **GreenScape** is a next-generation gardening assistant that turns your phone into a horticultural powerhouse. By scanning your yard, gathering real-time environmental data, and leveraging state-of-the-art AI, GreenScape recommends the perfect plants for your specific microclimate and lets you visualize them in your yard using Augmented Reality.
 
@@ -17,6 +17,13 @@ Most people struggle to know what to plant in their yard. They buy beautiful pla
 - **👓 AR Visualization**: Place life-sized 3D models of recommended plants in your actual yard to see how they look at maturity.
 - **📅 Personalized Care Schedule**: Week-by-week tasks (watering, pruning, fertilizing) adapted to your local weather forecast.
 - **📈 Environmental Impact Dashboard**: Track your yard's contribution to carbon sequestration, water savings (vs. turf lawns), and biodiversity.
+
+---
+
+## 📸 Visualizations
+| AR Lawn Visualization | Impact & Plant Tracking |
+|:---:|:---:|
+| ![AR Visualization](assets/images/greenscape_ar.jpg) | ![Impact Dashboard](assets/images/greenscape_impact.jpg) |
 
 ---
 
@@ -118,11 +125,6 @@ graph TD
 | **Weather Metrics** | Open-Meteo |
 | **Frost Dates** | NOAA Climate Data |
 | **Plant Taxonomy** | Perenual API |
-
----
-
-## 📸 Screenshots & Demo
-*(Add your screenshots here)*
 
 ---
 
