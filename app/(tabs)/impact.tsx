@@ -144,7 +144,7 @@ export default function ImpactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.lawnLens.background,
+    backgroundColor: Colors.greenScape.background,
   },
   content: {
     paddingHorizontal: 20,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   scoreMeta: {
     marginTop: -16,
     marginBottom: 32,
-    backgroundColor: Colors.lawnLens.cardSurface,
+    backgroundColor: Colors.greenScape.cardSurface,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   profileText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 14,
-    color: Colors.lawnLens.textPrimary,
+    color: Colors.greenScape.textPrimary,
   },
   breakdownRow: {
     flexDirection: 'row',
@@ -178,12 +178,12 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontFamily: 'Inter-Medium',
     fontSize: 13,
-    color: Colors.lawnLens.textMuted,
+    color: Colors.greenScape.textMuted,
   },
   breakdownValue: {
     fontFamily: 'Sora-SemiBold',
     fontSize: 13,
-    color: Colors.lawnLens.textPrimary,
+    color: Colors.greenScape.textPrimary,
   },
   statisticsButton: {
     marginTop: 24,

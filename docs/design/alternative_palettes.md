@@ -1,4 +1,4 @@
-# LawnLens — Alternative Color Palettes
+# GreenScape — Alternative Color Palettes
 
 These are the unused alternative color palette options preserved for future reference.
 

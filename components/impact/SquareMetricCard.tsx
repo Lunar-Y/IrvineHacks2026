@@ -13,7 +13,7 @@ interface Props {
 }
 
 function MetricIcon({ icon }: { icon: Props['icon'] }) {
-    const stroke = Colors.lawnLens.secondary;
+    const stroke = Colors.greenScape.secondary;
     const strokeWidth = 1.8;
     const iconSize = 24;
 
@@ -29,18 +29,18 @@ function MetricIcon({ icon }: { icon: Props['icon'] }) {
 
     if (icon === 'native') {
         return (
-            <Feather name="feather" size={iconSize} color={Colors.lawnLens.secondary} accessibilityLabel="native-icon" />
+            <Feather name="feather" size={iconSize} color={Colors.greenScape.secondary} accessibilityLabel="native-icon" />
         );
     }
 
     if (icon === 'heat') {
         return (
-            <Feather name="thermometer" size={iconSize} color={Colors.lawnLens.secondary} accessibilityLabel="heat-icon" />
+            <Feather name="thermometer" size={iconSize} color={Colors.greenScape.secondary} accessibilityLabel="heat-icon" />
         );
     }
 
     return (
-        <Feather name="git-merge" size={iconSize} color={Colors.lawnLens.secondary} accessibilityLabel="nitrogen-icon" />
+        <Feather name="git-merge" size={iconSize} color={Colors.greenScape.secondary} accessibilityLabel="nitrogen-icon" />
     );
 }
 
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     container: {
         width: 168,
         height: 168,
-        backgroundColor: Colors.lawnLens.cardSurface,
+        backgroundColor: Colors.greenScape.cardSurface,
         borderRadius: 16,
         padding: 16,
     },
@@ -74,19 +74,19 @@ const styles = StyleSheet.create({
         marginBottom: 28,
     },
     title: {
-        color: Colors.lawnLens.textPrimary,
+        color: Colors.greenScape.textPrimary,
         fontFamily: 'Inter-SemiBold',
         fontSize: 14,
         flex: 1,
     },
     metric: {
-        color: Colors.lawnLens.textPrimary,
+        color: Colors.greenScape.textPrimary,
         fontFamily: 'Sora-SemiBold',
         fontSize: 28,
         marginBottom: 10,
     },
     descriptor: {
-        color: Colors.lawnLens.textMuted,
+        color: Colors.greenScape.textMuted,
         fontFamily: 'Inter-Medium',
         fontSize: 12,
     },

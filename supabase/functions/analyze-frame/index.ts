@@ -4,7 +4,7 @@
 // File: supabase/functions/analyze-frame/index.ts
 //
 // PURPOSE:
-//   This function represents "Step 1" of the LawnLens AI pipeline. The mobile
+//   This function represents "Step 1" of the GreenScape AI pipeline. The mobile
 //   app captures a photo of the user's yard and sends it (base64-encoded) to
 //   this Edge Function. This function securely forwards it to the Dedalus Vision
 //   API (multimodal image understanding) and returns a structured JSON profile

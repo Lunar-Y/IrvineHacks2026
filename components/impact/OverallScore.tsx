@@ -20,7 +20,7 @@ export function OverallScore({ score, hasData, placeholder = '--' }: Props) {
                 <Svg width="240" height="240" viewBox="0 0 240 240" accessibilityLabel="overall-score-gauge">
                     <Path
                         d="M 23.0052 176 A 112 112 0 1 1 216.9948 176"
-                        stroke={Colors.lawnLens.secondary}
+                        stroke={Colors.greenScape.secondary}
                         strokeWidth="16"
                         strokeLinecap="round"
                         fill="none"
@@ -55,12 +55,12 @@ const styles = StyleSheet.create({
     scoreText: {
         fontFamily: 'Sora-Bold',
         fontSize: 52,
-        color: Colors.lawnLens.textPrimary,
+        color: Colors.greenScape.textPrimary,
         marginBottom: 4,
     },
     labelText: {
         fontFamily: 'Inter-Medium',
         fontSize: 14,
-        color: Colors.lawnLens.textMuted,
+        color: Colors.greenScape.textMuted,
     },
 });

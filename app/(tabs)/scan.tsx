@@ -79,7 +79,7 @@ export default function ScanScreen() {
     if (!permission?.granted) return;
     if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
 
-    const FLAG_KEY = 'lawnlens_camera_refresh_done';
+    const FLAG_KEY = 'greenscape_camera_refresh_done';
     const alreadyDone = window.localStorage.getItem(FLAG_KEY);
     if (alreadyDone) return;
 
@@ -237,7 +237,7 @@ export default function ScanScreen() {
           <Text style={styles.errorEmoji}>🌱</Text>
           <Text style={[styles.successTitle, { color: '#F5F7F6', fontSize: 18, fontFamily: 'Inter', fontWeight: '600', marginBottom: 8 }]}>Permissions Required</Text>
           <Text style={[styles.successSubtext, { color: '#9FAFAA', fontSize: 14, fontFamily: 'Inter', textAlign: 'center', marginBottom: 24 }]}>
-            LawnLens needs camera and location access to accurately identify the best plants for your yard's unique environment.
+            GreenScape needs camera and location access to accurately identify the best plants for your yard's unique environment.
           </Text>
 
           <TouchableOpacity
@@ -275,7 +275,7 @@ export default function ScanScreen() {
       <View style={[styles.container, styles.centered, { backgroundColor: '#0F1412' }]}>
         <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#18201D', borderRadius: 16, width: '90%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 }}>
           <Text style={{ textAlign: 'center', marginBottom: 24, color: '#F5F7F6', fontSize: 16, fontFamily: 'Inter', fontWeight: '500' }}>
-            LawnLens requires camera access to scan your yard and recommend suitable plants.
+            GreenScape requires camera access to scan your yard and recommend suitable plants.
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#2F6B4F', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 999, width: '100%', alignItems: 'center' }}

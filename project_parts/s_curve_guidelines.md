@@ -1,4 +1,4 @@
-# LawnLens — CO₂ S-Curve Sparkline Constraints
+# GreenScape — CO₂ S-Curve Sparkline Constraints
 **Version 1.0 (Draft Mode)**
 
 ## Overview

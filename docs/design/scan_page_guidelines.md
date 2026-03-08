@@ -28,7 +28,7 @@ The current continuous circle overlay must be replaced with a more professional,
 ---
 
 ## 4. Bottom Controls & Action Button
-The "Scan Lawn" interaction is the most critical button on the screen and must reflect the premium "LawnLens" aesthetic.
+The "Scan Lawn" interaction is the most critical button on the screen and must reflect the premium "GreenScape" aesthetic.
 
 - **Placement:** Positioned within the dark gradient layer at the bottom of the screen, just above the navigation bar.
 - **Container Shape:** A solid pill shape (fully rounded corners).

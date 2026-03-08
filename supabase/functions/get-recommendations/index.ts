@@ -4,7 +4,7 @@
 // File: supabase/functions/get-recommendations/index.ts
 //
 // PURPOSE:
-//   This is the CORE AI Brain of LawnLens. It implements the full RAG pipeline:
+//   This is the CORE AI Brain of GreenScape. It implements the full RAG pipeline:
 //     1. RETRIEVE: Query Supabase's rag_plants table using pgvector cosine
 //        similarity search (via the `match_plants` RPC) to find the plants
 //        that mathematically best match the user's yard environment.
@@ -119,7 +119,7 @@ async function getLLMRecommendations(
 ): Promise<unknown[]> {
   // The system prompt precisely tells the LLM its role, what data to use,
   // and what format to return. Being explicit prevents JSON formatting errors.
-  const systemPrompt = `You are an expert landscape architect and horticulturalist for the LawnLens AI app.
+  const systemPrompt = `You are an expert landscape architect and horticulturalist for the GreenScape AI app.
 You MUST recommend exactly 5 plants to the user based STRICTLY on the RAG DATABASE MATCHES provided below.
 Do NOT recommend plants that are not in the RAG DATABASE MATCHES.
 Rank them from most to least suitable for the user's specific yard.

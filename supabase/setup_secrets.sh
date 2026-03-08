@@ -32,7 +32,7 @@
 set -e # Exit immediately if any command fails
 
 echo "============================================"
-echo " LawnLens: Supabase Secrets Setup"
+echo " GreenScape: Supabase Secrets Setup"
 echo "============================================"
 echo ""
 

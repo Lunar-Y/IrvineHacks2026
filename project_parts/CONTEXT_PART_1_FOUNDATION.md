@@ -1,7 +1,7 @@
-# LawnLens Part 1: Foundation & Infrastructure
+# GreenScape Part 1: Foundation & Infrastructure
 
 ## Role: Foundation Engineer
-**Goal:** Build the buildable "Skeleton" of the LawnLens app, establishing the core architecture, navigation, and state management.
+**Goal:** Build the buildable "Skeleton" of the GreenScape app, establishing the core architecture, navigation, and state management.
 
 ### Scope & Tasks:
 1. **Expo & Environment Setup:**
